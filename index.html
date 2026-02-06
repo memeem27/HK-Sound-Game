@@ -11,10 +11,10 @@
 
 <div class="container">
 
-    <h1 class="title">Hollow Knight Sound Guessing Game</h1>
+    <!-- LEFT SIDEBAR -->
+    <div class="sidebar">
 
-    <!-- Controls Section -->
-    <div class="controls">
+        <h2 class="menu-title">Settings</h2>
 
         <div class="control-group">
             <label for="backgroundSelect">Background:</label>
@@ -53,25 +53,22 @@
 
     </div>
 
-    <!-- Game Area -->
-    <div class="game-area">
+    <!-- MAIN GAME AREA -->
+    <div class="main">
+
+        <h1 class="title">Hollow Knight Sound Guessing Game</h1>
 
         <button id="playBtn" class="sound-button">Play Sound</button>
 
         <div id="options" class="options"></div>
 
-    </div>
+        <div class="stats">
+            <p>Round: <span id="roundDisplay">0</span></p>
+            <p>Streak: <span id="streakDisplay">0</span></p>
+            <p>Fastest Time: <span id="fastestTime">0.0s</span></p>
+            <p>Timer: <span id="timerDisplay">0.0s</span></p>
+        </div>
 
-    <!-- Stats Section -->
-    <div class="stats">
-        <p>Round: <span id="roundDisplay">0</span></p>
-        <p>Streak: <span id="streakDisplay">0</span></p>
-        <p>Fastest Time: <span id="fastestTime">0.0s</span></p>
-        <p>Timer: <span id="timerDisplay">0.0s</span></p>
-    </div>
-
-    <div class="footer">
-        <p>Hollow Knight Sound Guessing Game — Fan Project</p>
     </div>
 
 </div>
