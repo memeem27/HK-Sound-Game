@@ -2,7 +2,7 @@
    FIREBASE IMPORTS
 --------------------------------------------------------- */
 
-import { db } from "./firebase.js";
+import { db } from "/HK-Sound-Game/firebase.js";
 import {
     collection,
     doc,
