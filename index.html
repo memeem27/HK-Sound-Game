@@ -4,60 +4,79 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hollow Knight Sound Guessing Game</title>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-    <h1>Hollow Knight Sound Guessing Game</h1>
+<div class="container">
 
-    <!-- Background Selector -->
-    <label for="backgroundSelect">Background:</label>
-    <select id="backgroundSelect">
-        <option value="images/bg1.jpg">Background 1</option>
-        <option value="images/bg2.jpg">Background 2</option>
-        <option value="images/bg3.jpg">Background 3</option>
-    </select>
+    <h1 class="title">Hollow Knight Sound Guessing Game</h1>
 
-    <!-- Volume Slider -->
-    <label for="volumeSlider">Volume:</label>
-    <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+    <!-- Controls Section -->
+    <div class="controls">
 
-    <!-- Search Mode -->
-    <label>
-        <input type="checkbox" id="searchToggle">
-        Search Mode
-    </label>
+        <div class="control-group">
+            <label for="backgroundSelect">Background:</label>
+            <select id="backgroundSelect">
+                <option value="images/bg1.jpg">Background 1</option>
+                <option value="images/bg2.jpg">Background 2</option>
+                <option value="images/bg3.jpg">Background 3</option>
+            </select>
+        </div>
 
-    <!-- Option Count -->
-    <label for="optionCount">Options:</label>
-    <input type="number" id="optionCount" min="2" max="20" value="4">
+        <div class="control-group">
+            <label for="volumeSlider">Volume:</label>
+            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
+        </div>
 
-    <!-- Timer Mode -->
-    <label for="timerMode">Timer:</label>
-    <select id="timerMode">
-        <option value="none">None</option>
-        <option value="normal">Normal</option>
-        <option value="hard">Hard</option>
-    </select>
+        <div class="control-group">
+            <label>
+                <input type="checkbox" id="searchToggle">
+                Search Mode
+            </label>
+        </div>
 
-    <!-- Play Sound -->
-    <button id="playBtn">Play Sound</button>
+        <div class="control-group">
+            <label for="optionCount">Options:</label>
+            <input type="number" id="optionCount" min="2" max="20" value="4">
+        </div>
 
-    <!-- Game Info -->
-    <div class="info">
+        <div class="control-group">
+            <label for="timerMode">Timer:</label>
+            <select id="timerMode">
+                <option value="none">None</option>
+                <option value="normal">Normal</option>
+                <option value="hard">Hard</option>
+            </select>
+        </div>
+
+    </div>
+
+    <!-- Game Area -->
+    <div class="game-area">
+
+        <button id="playBtn" class="sound-button">Play Sound</button>
+
+        <div id="options" class="options"></div>
+
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats">
         <p>Round: <span id="roundDisplay">0</span></p>
         <p>Streak: <span id="streakDisplay">0</span></p>
         <p>Fastest Time: <span id="fastestTime">0.0s</span></p>
         <p>Timer: <span id="timerDisplay">0.0s</span></p>
     </div>
 
-    <!-- Options -->
-    <div id="options"></div>
+    <div class="footer">
+        <p>Hollow Knight Sound Guessing Game — Fan Project</p>
+    </div>
 
-    <!-- Load Game Script -->
-    <script type="module" src="game-v2.js"></script>
+</div>
+
+<script type="module" src="game-v2.js"></script>
 
 </body>
 </html>
- 
