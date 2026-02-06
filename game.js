@@ -241,3 +241,22 @@ window.gameStats = {
     get timerMode() { return game.settings.timerMode },
     get roundsCompleted() { return game.stats.roundsCompleted }
 };
+document.addEventListener("DOMContentLoaded", () => {
+
+    const bgVideo = document.getElementById("bgVideo");
+    const bgSelect = document.getElementById("bgSelect");
+
+    function updateBackground() {
+        const file = bgSelect.value;
+        if (file) {
+            bgVideo.src = file;
+            bgVideo.play();
+        }
+    }
+
+    bgSelect.addEventListener("change", updateBackground);
+
+    // Load default background
+    updateBackground();
+
+});
