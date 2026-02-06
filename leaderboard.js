@@ -1,6 +1,22 @@
-/* -----------------------------
-   USERNAME GENERATION
------------------------------- */
+/* ---------------------------------------------------------
+   FIREBASE IMPORTS
+--------------------------------------------------------- */
+
+import { db } from "./firebase.js";
+import {
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    getDocs,
+    query,
+    orderBy,
+    limit
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+
+/* ---------------------------------------------------------
+   USERNAME SYSTEM
+--------------------------------------------------------- */
 
 const lbUsernameEl = document.getElementById("lbUsername");
 let username = localStorage.getItem("username") || "";
@@ -17,92 +33,84 @@ const nouns = [
     "Mireling","Lurker","Stalker","Guardian","Harvester","Shellwalker","Soulcatcher"
 ];
 
-function randomUsernameBase() {
+function randomUsername() {
     const adj = adjectives[Math.floor(Math.random() * adjectives.length)];
     const noun = nouns[Math.floor(Math.random() * nouns.length)];
     const num = Math.floor(1000 + Math.random() * 9000);
     return `${adj} ${noun} ${num}`;
 }
 
+async function ensureUsername() {
+    if (username) return username;
 
-/* -----------------------------
-   LEADERBOARD STORAGE
------------------------------- */
+    let candidate = randomUsername();
+    let exists = true;
 
-const MAX_ENTRIES = 25;
+    while (exists) {
+        const docRef = doc(db, "usernames", candidate);
+        const snap = await getDoc(docRef);
+        exists = snap.exists();
+        if (exists) candidate = randomUsername();
+    }
 
-let leaderboardWins = JSON.parse(localStorage.getItem("leaderboardWins") || "[]");
-let leaderboardFastest = JSON.parse(localStorage.getItem("leaderboardFastest") || "[]");
-let leaderboardStreak = JSON.parse(localStorage.getItem("leaderboardStreak") || "[]");
-let leaderboardEasy = JSON.parse(localStorage.getItem("leaderboardEasy") || "[]");
-let leaderboardMedium = JSON.parse(localStorage.getItem("leaderboardMedium") || "[]");
-let leaderboardHard = JSON.parse(localStorage.getItem("leaderboardHard") || "[]");
+    await setDoc(doc(db, "usernames", candidate), { created: Date.now() });
+
+    username = candidate;
+    localStorage.setItem("username", username);
+    return username;
+}
+
+function updateUsernameDisplay() {
+    lbUsernameEl.textContent = "Your Username: " + username;
+}
+
+/* ---------------------------------------------------------
+   FIRESTORE COLLECTIONS
+--------------------------------------------------------- */
+
+const LB = {
+    wins: collection(db, "leaderboard_wins"),
+    fastest: collection(db, "leaderboard_fastest"),
+    streak: collection(db, "leaderboard_streak"),
+    easy: collection(db, "leaderboard_easy"),
+    medium: collection(db, "leaderboard_medium"),
+    hard: collection(db, "leaderboard_hard")
+};
+
+/* ---------------------------------------------------------
+   SAVE SCORE TO FIRESTORE
+--------------------------------------------------------- */
+
+async function submitScore(category, data) {
+    const user = await ensureUsername();
+    const docRef = doc(LB[category], user);
+    await setDoc(docRef, data, { merge: true });
+}
+
+/* ---------------------------------------------------------
+   LOAD LEADERBOARD FROM FIRESTORE
+--------------------------------------------------------- */
 
 const lbSelect = document.getElementById("lbSelect");
 const lbListEl = document.getElementById("lbList");
 
-
-function allUsernamesInLeaderboards() {
-    const all = [];
-    [leaderboardWins, leaderboardFastest, leaderboardStreak,
-     leaderboardEasy, leaderboardMedium, leaderboardHard].forEach(lb => {
-        lb.forEach(entry => all.push(entry.user));
-    });
-    return all;
-}
-
-function ensureUsername() {
-    if (username) return;
-    const existing = new Set(allUsernamesInLeaderboards());
-    let candidate = randomUsernameBase();
-    while (existing.has(candidate)) {
-        candidate = randomUsernameBase();
-    }
-    username = candidate;
-    localStorage.setItem("username", username);
-}
-
-function saveLeaderboards() {
-    localStorage.setItem("leaderboardWins", JSON.stringify(leaderboardWins));
-    localStorage.setItem("leaderboardFastest", JSON.stringify(leaderboardFastest));
-    localStorage.setItem("leaderboardStreak", JSON.stringify(leaderboardStreak));
-    localStorage.setItem("leaderboardEasy", JSON.stringify(leaderboardEasy));
-    localStorage.setItem("leaderboardMedium", JSON.stringify(leaderboardMedium));
-    localStorage.setItem("leaderboardHard", JSON.stringify(leaderboardHard));
-}
-
-
-/* -----------------------------
-   RENDER LEADERBOARD
------------------------------- */
-
-function renderCurrentLeaderboard() {
+async function loadLeaderboard(category) {
     lbListEl.innerHTML = "";
-    const type = lbSelect.value;
-    let list = [];
-    let formatter = () => "";
 
-    if (type === "wins") {
-        list = leaderboardWins;
-        formatter = e => `${e.user} – ${e.wins}`;
-    } else if (type === "fastest") {
-        list = leaderboardFastest;
-        formatter = e => `${e.user} – ${e.time.toFixed(2)}s`;
-    } else if (type === "streak") {
-        list = leaderboardStreak;
-        formatter = e => `${e.user} – ${e.streak}`;
-    } else if (type === "easy") {
-        list = leaderboardEasy;
-        formatter = e => `${e.user} – ${e.score}`;
-    } else if (type === "medium") {
-        list = leaderboardMedium;
-        formatter = e => `${e.user} – ${e.score}`;
-    } else if (type === "hard") {
-        list = leaderboardHard;
-        formatter = e => `${e.user} – ${e.score}`;
-    }
+    let sortField = "value";
+    let ascending = false;
 
-    if (!list.length) {
+    if (category === "fastest") ascending = true;
+
+    const q = query(
+        LB[category],
+        orderBy(sortField, ascending ? "asc" : "desc"),
+        limit(25)
+    );
+
+    const snap = await getDocs(q);
+
+    if (snap.empty) {
         const li = document.createElement("li");
         li.className = "lb-empty";
         li.textContent = "N/A";
@@ -110,29 +118,27 @@ function renderCurrentLeaderboard() {
         return;
     }
 
-    list.slice(0, MAX_ENTRIES).forEach((entry, index) => {
+    let index = 1;
+    snap.forEach(docSnap => {
+        const data = docSnap.data();
         const li = document.createElement("li");
-        li.textContent = `${index + 1}. ${formatter(entry)}`;
+
+        let displayValue = data.value;
+        if (category === "fastest") displayValue = data.value.toFixed(2) + "s";
+
+        li.textContent = `${index}. ${docSnap.id} – ${displayValue}`;
         lbListEl.appendChild(li);
+        index++;
     });
 }
 
-lbSelect.onchange = () => {
-    renderCurrentLeaderboard();
-};
+lbSelect.onchange = () => loadLeaderboard(lbSelect.value);
 
-
-/* -----------------------------
+/* ---------------------------------------------------------
    TROPHY SYSTEM
------------------------------- */
+--------------------------------------------------------- */
 
 const trophyCase = document.getElementById("trophyCase");
-
-function getTopUser(lb, key, ascending = false) {
-    if (!lb.length) return null;
-    const sorted = [...lb].sort((a, b) => ascending ? a[key] - b[key] : b[key] - a[key]);
-    return sorted[0];
-}
 
 function createTrophySVG(gradientId, colors, cls, title) {
     const wrapper = document.createElement("div");
@@ -149,7 +155,6 @@ function createTrophySVG(gradientId, colors, cls, title) {
                 </linearGradient>
             </defs>
 
-            <!-- Android-style geometric trophy -->
             <path fill="url(#${gradientId})" d="M18 10h28v14c0 9.5-7.5 17-17 17s-17-7.5-17-17V10h6z"/>
             <path fill="url(#${gradientId})" d="M46 10h8v10c0 7-5 13-12 14v-6c2.5-1.5 4-4.2 4-8V10z"/>
             <path fill="url(#${gradientId})" d="M10 10h8v10c0 3.8 1.5 6.5 4 8v6C15 33 10 27 10 20V10z"/>
@@ -162,127 +167,70 @@ function createTrophySVG(gradientId, colors, cls, title) {
     return wrapper;
 }
 
-function updateTrophies() {
+async function updateTrophies() {
     trophyCase.innerHTML = "";
-    if (!username) return;
+    const user = await ensureUsername();
 
-    const trophies = [];
+    const categories = [
+        { key: "wins", title: "#1 in Wins", colors: ["#fff7d1","#f2b93b","#c47a1f"], asc: false },
+        { key: "fastest", title: "#1 Fastest Time", colors: ["#ffffff","#d0eaff","#9ad7ff"], asc: true },
+        { key: "streak", title: "#1 Best Streak", colors: ["#f0d4ff","#c28bff","#8b4dff"], asc: false },
+        { key: "easy", title: "#1 Easy Mode Score", colors: ["#d4f6ff","#6ad7ff","#2a9fff"], asc: false },
+        { key: "medium", title: "#1 Medium Mode Score", colors: ["#ffd4d4","#ff6a6a","#c43a3a"], asc: false },
+        { key: "hard", title: "#1 Hard Mode Score", colors: ["#ffffff","#777777","#000000"], asc: false }
+    ];
 
-    const topWins = getTopUser(leaderboardWins, "wins", false);
-    if (topWins && topWins.user === username) {
-        trophies.push({
-            colors: ["#fff7d1", "#f2b93b", "#c47a1f"],
-            cls: "trophy-wins",
-            title: "#1 in Wins"
-        });
+    for (let i = 0; i < categories.length; i++) {
+        const c = categories[i];
+
+        const q = query(
+            LB[c.key],
+            orderBy("value", c.asc ? "asc" : "desc"),
+            limit(1)
+        );
+
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+            const top = snap.docs[0];
+            if (top.id === user) {
+                const gradId = `grad_${c.key}_${Date.now()}`;
+                const trophy = createTrophySVG(gradId, c.colors, c.key, c.title);
+                trophyCase.appendChild(trophy);
+            }
+        }
     }
-
-    const topFastest = getTopUser(leaderboardFastest, "time", true);
-    if (topFastest && topFastest.user === username) {
-        trophies.push({
-            colors: ["#ffffff", "#d0eaff", "#9ad7ff"],
-            cls: "trophy-fastest",
-            title: "#1 Fastest Time"
-        });
-    }
-
-    const topStreak = getTopUser(leaderboardStreak, "streak", false);
-    if (topStreak && topStreak.user === username) {
-        trophies.push({
-            colors: ["#f0d4ff", "#c28bff", "#8b4dff"],
-            cls: "trophy-streak",
-            title: "#1 Best Streak"
-        });
-    }
-
-    const topEasy = getTopUser(leaderboardEasy, "score", false);
-    if (topEasy && topEasy.user === username) {
-        trophies.push({
-            colors: ["#d4f6ff", "#6ad7ff", "#2a9fff"],
-            cls: "trophy-easy",
-            title: "#1 Easy Mode Score"
-        });
-    }
-
-    const topMedium = getTopUser(leaderboardMedium, "score", false);
-    if (topMedium && topMedium.user === username) {
-        trophies.push({
-            colors: ["#ffd4d4", "#ff6a6a", "#c43a3a"],
-            cls: "trophy-medium",
-            title: "#1 Medium Mode Score"
-        });
-    }
-
-    const topHard = getTopUser(leaderboardHard, "score", false);
-    if (topHard && topHard.user === username) {
-        trophies.push({
-            colors: ["#ffffff", "#777777", "#000000"],
-            cls: "trophy-hard",
-            title: "#1 Hard Mode Score"
-        });
-    }
-
-    trophies.forEach((t, index) => {
-        const gradId = `trophyGrad_${index}_${Date.now()}_${Math.floor(Math.random()*1000)}`;
-        const trophyEl = createTrophySVG(gradId, t.colors, t.cls, t.title);
-        trophyCase.appendChild(trophyEl);
-    });
 }
 
-
-/* -----------------------------
+/* ---------------------------------------------------------
    SUBMIT SCORE BUTTON
------------------------------- */
+--------------------------------------------------------- */
 
 const submitScoreBtn = document.getElementById("submitScoreBtn");
 
-function upsertEntry(list, matchKey, matchValue, data, sortKey, ascending = false) {
-    const existingIndex = list.findIndex(e => e[matchKey] === matchValue);
-    if (existingIndex >= 0) {
-        list[existingIndex] = { ...list[existingIndex], ...data };
-    } else {
-        list.push({ [matchKey]: matchValue, ...data });
-    }
-    list.sort((a, b) => ascending ? a[sortKey] - b[sortKey] : b[sortKey] - a[sortKey]);
-    if (list.length > MAX_ENTRIES) list.length = MAX_ENTRIES;
-}
+submitScoreBtn.onclick = async () => {
+    await ensureUsername();
 
-submitScoreBtn.onclick = () => {
-    ensureUsername();
+    // Pull stats from game.js (global variables)
+    await submitScore("wins", { value: wins });
+    if (fastestTime > 0) await submitScore("fastest", { value: fastestTime });
+    await submitScore("streak", { value: bestStreak });
 
-    upsertEntry(leaderboardWins, "user", username, { wins }, "wins", false);
+    if (timerMode === "easy") await submitScore("easy", { value: roundsCompleted });
+    if (timerMode === "medium") await submitScore("medium", { value: roundsCompleted });
+    if (timerMode === "hard") await submitScore("hard", { value: roundsCompleted });
 
-    if (fastestTime > 0) {
-        upsertEntry(leaderboardFastest, "user", username, { time: fastestTime }, "time", true);
-    }
-
-    upsertEntry(leaderboardStreak, "user", username, { streak: bestStreak }, "streak", false);
-
-    if (timerMode === "easy") {
-        upsertEntry(leaderboardEasy, "user", username, { score: roundsCompleted }, "score", false);
-    } else if (timerMode === "medium") {
-        upsertEntry(leaderboardMedium, "user", username, { score: roundsCompleted }, "score", false);
-    } else if (timerMode === "hard") {
-        upsertEntry(leaderboardHard, "user", username, { score: roundsCompleted }, "score", false);
-    }
-
-    saveLeaderboards();
-    renderCurrentLeaderboard();
-    updateTrophies();
+    await loadLeaderboard(lbSelect.value);
+    await updateTrophies();
     updateUsernameDisplay();
 };
 
-function updateUsernameDisplay() {
-    ensureUsername();
-    lbUsernameEl.textContent = "Your Username: " + username;
-}
-
-
-/* -----------------------------
+/* ---------------------------------------------------------
    INITIALIZE
------------------------------- */
+--------------------------------------------------------- */
 
-ensureUsername();
-updateUsernameDisplay();
-renderCurrentLeaderboard();
-updateTrophies();
+(async () => {
+    await ensureUsername();
+    updateUsernameDisplay();
+    await loadLeaderboard(lbSelect.value);
+    await updateTrophies();
+})();

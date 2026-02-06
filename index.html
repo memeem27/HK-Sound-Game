@@ -27,7 +27,7 @@
     <div id="leaderboardPanel">
         <h2>Leaderboard</h2>
 
-        <!-- Dropdown -->
+        <!-- Leaderboard category dropdown -->
         <select id="lbSelect">
             <option value="wins">Wins</option>
             <option value="fastest">Fastest Time</option>
@@ -37,7 +37,7 @@
             <option value="hard">Hard Mode</option>
         </select>
 
-        <!-- Submit button moved directly under dropdown -->
+        <!-- Submit button directly under dropdown -->
         <button id="submitScoreBtn">Submit Current Stats</button>
 
         <!-- Leaderboard list -->
@@ -128,8 +128,13 @@
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="leaderboard.js"></script>
+    <!-- Firebase + Firestore -->
+    <script type="module" src="firebase.js"></script>
+
+    <!-- Leaderboard (module, uses Firestore) -->
+    <script type="module" src="leaderboard.js"></script>
+
+    <!-- Game logic (non-module) -->
     <script src="game.js"></script>
 
 </body>
