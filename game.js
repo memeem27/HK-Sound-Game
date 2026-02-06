@@ -239,16 +239,19 @@ class Game {
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
         this.correctName = formatName(this.currentSound);
 
+        // Update optionCount max and current value if needed
+        const actualOptionCount = Math.min(this.settings.optionCount, this.soundFiles.length);
+
         // Build options
-        this.buildOptions();
+        this.buildOptions(actualOptionCount);
     }
 
-    buildOptions() {
+    buildOptions(count) {
         this.ui.clearOptions();
 
         const options = new Set([this.correctName]);
 
-        while (options.size < this.settings.optionCount) {
+        while (options.size < count) {
             const random = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
             options.add(formatName(random));
         }
@@ -306,6 +309,11 @@ window.gameStats = {
 // ===============================
 const game = new Game();
 game.loadSounds();
+
+// Initial background load
+if (game.ui.backgroundSelect) {
+    game.ui.setBackground(game.ui.backgroundSelect.value || "backgrounds/Classic.mp4");
+}
 
 document.getElementById("submitBtn").addEventListener("click", () => {
     game.handleGuess();
