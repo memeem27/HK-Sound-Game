@@ -3,230 +3,55 @@
 <head>
     <meta charset="UTF-8">
     <title>HK Sound Game</title>
-
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap');
-
-        body {
-            margin: 0;
-            padding: 40px;
-            font-family: 'Cinzel', serif;
-            background: #0d0d16;
-            color: #e6e6f0;
-            text-align: center;
-            overflow-x: hidden;
-        }
-
-        /* Background video */
-        #bgVideo {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: -1;
-            opacity: 0.35;
-        }
-
-        h1 {
-            font-size: 48px;
-            letter-spacing: 2px;
-            color: #d7d7ff;
-            text-shadow: 0 0 12px #6a6aff;
-            margin-bottom: 30px;
-        }
-
-        button, select {
-            padding: 12px 24px;
-            font-size: 20px;
-            border: none;
-            border-radius: 6px;
-            margin: 10px;
-            cursor: pointer;
-            font-family: 'Cinzel', serif;
-            background: #2a2a4a;
-            color: #e6e6f0;
-            box-shadow: 0 0 10px rgba(120, 120, 255, 0.4);
-            transition: 0.2s;
-        }
-
-        button:hover, select:hover {
-            background: #3a3a6a;
-            box-shadow: 0 0 15px rgba(150, 150, 255, 0.6);
-        }
-
-        /* Slider */
-        input[type="range"] {
-            width: 90%;
-            margin-top: 10px;
-            appearance: none;
-            height: 6px;
-            border-radius: 4px;
-            background: #444;
-        }
-
-        input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            background: #d7d7ff;
-            box-shadow: 0 0 6px #6a6aff;
-            cursor: pointer;
-        }
-
-        #result {
-            font-size: 26px;
-            margin-top: 20px;
-            min-height: 40px;
-        }
-
-        .divider {
-            width: 60%;
-            height: 2px;
-            margin: 30px auto;
-            background: linear-gradient(to right, transparent, #6a6aff, transparent);
-            opacity: 0.5;
-            animation: pulse 3s infinite ease-in-out;
-        }
-
-        @keyframes pulse {
-            0% { opacity: 0.4; }
-            50% { opacity: 0.9; }
-            100% { opacity: 0.4; }
-        }
-
-        /* Menu button */
-        #menuBtn {
-            position: fixed;
-            top: 30px;
-            right: 30px;
-            z-index: 10;
-            transition: right 0.3s ease;
-        }
-
-        /* Slide-out menu */
-        #menuPanel {
-            position: fixed;
-            top: 0;
-            right: -300px;
-            width: 260px;
-            height: 100%;
-            background: rgba(20, 20, 40, 0.95);
-            box-shadow: -4px 0 12px rgba(0,0,0,0.5);
-            padding: 20px;
-            transition: 0.3s ease;
-            z-index: 9;
-        }
-
-        #menuPanel.open {
-            right: 0;
-        }
-
-        #menuPanel.open ~ #menuBtn {
-            right: 300px;
-        }
-
-        #menuPanel h2 {
-            color: #d7d7ff;
-            text-shadow: 0 0 8px #6a6aff;
-            margin-bottom: 10px;
-        }
-
-        #menuPanel select, #menuPanel input[type="number"] {
-            width: 100%;
-        }
-
-        #menuPanel label {
-            display: block;
-            margin-top: 20px;
-            font-size: 18px;
-        }
-
-        /* Shared width container */
-        .choiceContainer {
-            width: 320px;
-            margin: 0 auto;
-        }
-
-        /* Force dropdown + search bar identical */
-        #choices,
-        #searchInput {
-            width: 100%;
-            box-sizing: border-box;
-            padding: 12px 24px;
-            font-size: 20px;
-            border-radius: 6px;
-            border: none;
-            background: #2a2a4a;
-            color: #e6e6f0;
-            font-family: 'Cinzel', serif;
-            box-shadow: 0 0 10px rgba(120, 120, 255, 0.4);
-        }
-
-        /* Search mode */
-        #searchContainer {
-            display: none;
-            margin-top: 10px;
-        }
-
-        #searchList {
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            margin-top: 10px;
-            background: #1a1a2a;
-            border-radius: 6px;
-            padding: 0;
-            list-style: none;
-        }
-
-        #searchList li {
-            padding: 10px;
-            cursor: pointer;
-            border-bottom: 1px solid #333;
-        }
-
-        #searchList li:hover {
-            background: #3a3a6a;
-        }
-
-        /* GitHub link bottom center */
-        #githubLink {
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            font-size: 20px;
-        }
-
-        #githubLink a {
-            color: #9aaaff;
-            text-decoration: none;
-            text-shadow: 0 0 8px #6a6aff;
-        }
-
-        #githubLink a:hover {
-            color: white;
-        }
-
-        /* Stats bottom middle left (300px left of center) */
-        #statsBox {
-            position: fixed;
-            bottom: 20px;
-            left: calc(20%);
-            transform: translateX(-50%);
-            font-size: 18px;
-            color: #d7d7ff;
-            text-shadow: 0 0 6px #6a6aff;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- Background Video -->
     <video id="bgVideo" autoplay loop muted></video>
 
+    <!-- Timer -->
+    <div id="timerDisplay"></div>
+
+    <!-- Stats (centered at top) -->
+    <div id="statsBox">
+        Wins: <span id="wins">0</span> |
+        Losses: <span id="losses">0</span> |
+        Streak: <span id="streak">0</span> |
+        Best: <span id="bestStreak">0</span> |
+        Avg Time: <span id="avgTime">0</span>s |
+        Fastest: <span id="fastestTime">0</span>s
+    </div>
+
+    <!-- Leaderboard Panel -->
+    <div id="leaderboardPanel">
+        <h2>Leaderboard</h2>
+
+        <!-- Dropdown -->
+        <select id="lbSelect">
+            <option value="wins">Wins</option>
+            <option value="fastest">Fastest Time</option>
+            <option value="streak">Best Streak</option>
+            <option value="easy">Easy Mode</option>
+            <option value="medium">Medium Mode</option>
+            <option value="hard">Hard Mode</option>
+        </select>
+
+        <!-- Submit button moved directly under dropdown -->
+        <button id="submitScoreBtn">Submit Current Stats</button>
+
+        <!-- Leaderboard list -->
+        <div id="leaderboardContent">
+            <div class="lb-box">
+                <ul id="lbList"></ul>
+            </div>
+        </div>
+
+        <!-- Username -->
+        <div id="lbUsername"></div>
+    </div>
+
+    <!-- Settings Menu -->
     <div id="menuPanel">
         <h2>Background</h2>
 
@@ -238,31 +63,40 @@
             <option value="Infected.mp4">Infected</option>
             <option value="Lifeblood.mp4">Lifeblood</option>
             <option value="SteelSoul.mp4">SteelSoul</option>
-            <option value="The Grimm Troupe.mp4">Grimm Troupe</option>
+            <option value="The Grimm Troupe.mp4">The Grimm Troupe</option>
             <option value="Void.mp4">Void</option>
             <option value="Voidheart.mp4">Voidheart</option>
             <option value="Zote.mp4" id="zoteOption" disabled>Zote</option>
         </select>
 
-        <label for="volumeSlider">Background Volume</label>
+        <label>Background Volume</label>
         <input type="range" id="volumeSlider" min="0" max="100" value="35">
 
-        <label for="optionCount">Number of Options</label>
-        <input type="number" id="optionCount" min="2" value="4">
+        <label>Number of Options</label>
+        <input type="number" id="optionCount" min="5" value="5">
 
         <button id="searchToggle">Enable Search</button>
+
+        <h2>Timer Mode</h2>
+        <label><input type="radio" name="timerMode" value="off" checked> Off</label>
+        <label><input type="radio" name="timerMode" value="easy"> Easy (45s)</label>
+        <label><input type="radio" name="timerMode" value="medium"> Medium (30s)</label>
+        <label><input type="radio" name="timerMode" value="hard"> Hard (15s)</label>
     </div>
 
+    <!-- Buttons -->
+    <button id="leaderboardBtn">Leaderboard</button>
     <button id="menuBtn">Menu</button>
 
+    <!-- Title -->
     <h1>Hollow Knight Sound Guessing</h1>
 
     <div class="divider"></div>
 
+    <!-- Play Sound -->
     <button id="playBtn">Play Sound</button>
 
-    <br><br>
-
+    <!-- Choices -->
     <div class="choiceContainer">
         <select id="choices"></select>
 
@@ -272,205 +106,31 @@
         </div>
     </div>
 
-    <br><br>
-
+    <!-- Submit Guess -->
     <button id="submitBtn">Submit Guess</button>
 
     <p id="result"></p>
-
-    <!-- Stats -->
-    <div id="statsBox">
-        Wins: <span id="wins">0</span> |
-        Losses: <span id="losses">0</span> |
-        W/L Ratio: <span id="ratio">0</span>
-    </div>
 
     <!-- GitHub -->
     <div id="githubLink">
         <a href="https://github.com/memeem27/HK-Sound-Game" target="_blank">GitHub</a>
     </div>
 
-    <script>
-        const soundFolder = "sounds/";
-        const bgFolder = "backgrounds/";
+    <!-- Trophy Case -->
+    <div id="trophyCase"></div>
 
-        let soundFiles = [];
-        let correctAnswer = "";
-        let searchEnabled = false;
-        let currentAudio = null;
+    <!-- Score Modal -->
+    <div id="scoreModal">
+        <div id="scoreContent">
+            <h2 id="scoreTitle">Time’s Up!</h2>
+            <p id="scoreText"></p>
+            <button id="playAgainBtn">Play Again</button>
+        </div>
+    </div>
 
-        let wins = 0;
-        let losses = 0;
-
-        const winsEl = document.getElementById("wins");
-        const lossesEl = document.getElementById("losses");
-        const ratioEl = document.getElementById("ratio");
-
-        function updateStats() {
-            winsEl.textContent = wins;
-            lossesEl.textContent = losses;
-            ratioEl.textContent = losses === 0 ? wins : (wins / losses).toFixed(2);
-        }
-
-        const bgVideo = document.getElementById("bgVideo");
-        const bgSelect = document.getElementById("bgSelect");
-        const zoteOption = document.getElementById("zoteOption");
-        const volumeSlider = document.getElementById("volumeSlider");
-        const optionCount = document.getElementById("optionCount");
-        const searchToggle = document.getElementById("searchToggle");
-
-        const choices = document.getElementById("choices");
-        const searchContainer = document.getElementById("searchContainer");
-        const searchInput = document.getElementById("searchInput");
-        const searchList = document.getElementById("searchList");
-
-        bgVideo.src = bgFolder + "Classic.mp4";
-        bgSelect.value = "Classic.mp4";
-        bgVideo.muted = true;
-
-        let targetVolume = 0.35;
-
-        function enableAudio() {
-            bgVideo.muted = false;
-            bgVideo.volume = targetVolume;
-            window.removeEventListener("click", enableAudio);
-        }
-        window.addEventListener("click", enableAudio);
-
-        volumeSlider.oninput = () => {
-            targetVolume = volumeSlider.value / 100;
-            bgVideo.volume = targetVolume;
-            bgVideo.muted = targetVolume === 0;
-        };
-
-        bgSelect.onchange = () => {
-            bgVideo.src = bgFolder + bgSelect.value;
-        };
-
-        const menuBtn = document.getElementById("menuBtn");
-        const menuPanel = document.getElementById("menuPanel");
-
-        menuBtn.onclick = () => {
-            menuPanel.classList.toggle("open");
-        };
-
-        async function loadSounds() {
-            const response = await fetch(soundFolder + "list.json");
-            soundFiles = await response.json();
-            optionCount.max = soundFiles.length;
-            newRound();
-        }
-
-        function generateOptions() {
-            let count = parseInt(optionCount.value);
-            if (count < 2) count = 2;
-            if (count > soundFiles.length) count = soundFiles.length;
-            optionCount.value = count;
-
-            const options = new Set([correctAnswer]);
-            while (options.size < count) {
-                options.add(soundFiles[Math.floor(Math.random() * soundFiles.length)]);
-            }
-            return Array.from(options).sort(() => Math.random() - 0.5);
-        }
-
-        function populateDropdown() {
-            choices.innerHTML = "";
-            const placeholder = document.createElement("option");
-            placeholder.textContent = "Select Sound";
-            placeholder.disabled = true;
-            placeholder.selected = true;
-            choices.appendChild(placeholder);
-
-            generateOptions().forEach(file => {
-                const opt = document.createElement("option");
-                opt.value = file;
-                opt.textContent = file.replace(/\.ogg$/i, "");
-                choices.appendChild(opt);
-            });
-        }
-
-        function populateSearchList() {
-            searchList.innerHTML = "";
-            generateOptions().forEach(file => {
-                const li = document.createElement("li");
-                li.textContent = file.replace(/\.ogg$/i, "");
-                li.onclick = () => searchInput.value = li.textContent;
-                searchList.appendChild(li);
-            });
-        }
-
-        searchInput.oninput = () => {
-            const filter = searchInput.value.toLowerCase();
-            Array.from(searchList.children).forEach(li => {
-                li.style.display = li.textContent.toLowerCase().includes(filter) ? "" : "none";
-            });
-        };
-
-        searchToggle.onclick = () => {
-            searchEnabled = !searchEnabled;
-            if (searchEnabled) {
-                searchToggle.textContent = "Disable Search";
-                choices.style.display = "none";
-                searchContainer.style.display = "block";
-                populateSearchList();
-            } else {
-                searchToggle.textContent = "Enable Search";
-                searchContainer.style.display = "none";
-                choices.style.display = "inline-block";
-            }
-        };
-
-        function stopAudio() {
-            if (currentAudio) {
-                currentAudio.pause();
-                currentAudio.currentTime = 0;
-            }
-        }
-
-        function playSound(file) {
-            stopAudio();
-            currentAudio = new Audio(soundFolder + file);
-            currentAudio.play();
-        }
-
-        function newRound() {
-            correctAnswer = soundFiles[Math.floor(Math.random() * soundFiles.length)];
-            if (searchEnabled) populateSearchList();
-            else populateDropdown();
-            document.getElementById("result").textContent = "";
-        }
-
-        document.getElementById("playBtn").onclick = () => playSound(correctAnswer);
-
-        document.getElementById("submitBtn").onclick = () => {
-            stopAudio();
-
-            let guess = searchEnabled ? searchInput.value + ".ogg" : choices.value;
-            const result = document.getElementById("result");
-
-            if (guess.replace(/\.ogg$/i, "") === correctAnswer.replace(/\.ogg$/i, "")) {
-                result.textContent = "Correct!";
-                result.style.color = "lightgreen";
-                wins++;
-
-                if (correctAnswer.toLowerCase().includes("zote")) {
-                    zoteOption.disabled = false;
-                    bgSelect.value = "Zote.mp4";
-                    bgVideo.src = bgFolder + "Zote.mp4";
-                }
-            } else {
-                result.textContent = "Wrong! Correct answer was: " + correctAnswer.replace(/\.ogg$/i, "");
-                result.style.color = "salmon";
-                losses++;
-            }
-
-            updateStats();
-            setTimeout(newRound, 1500);
-        };
-
-        loadSounds();
-    </script>
+    <!-- Scripts -->
+    <script src="leaderboard.js"></script>
+    <script src="game.js"></script>
 
 </body>
 </html>
