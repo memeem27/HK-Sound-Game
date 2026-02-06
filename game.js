@@ -281,7 +281,6 @@ class Game {
 
         const resultEl = document.getElementById("result");
         const winsEl = document.getElementById("wins");
-        const streakEl = document.getElementById("streak");
 
         if (correct) {
             this.stats.wins++;
