@@ -1,6 +1,6 @@
 // ===============================
 // Hollow Knight Sound Guessing Game
-// Final merged version (with search, timer, background audio)
+// Fixed search mode functionality
 // ===============================
 
 // Utility: Format filenames → Display names
@@ -58,21 +58,7 @@ class Timer {
         }
 
         this.updateDisplay();
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-                sessionId:'debug-session',
-                runId:'timer-debug',
-                hypothesisId:'T2',
-                location:'game.js:44',
-                message:'Timer.start called',
-                data:{initialTime:this.time},
-                timestamp:Date.now()
-            })
-        }).catch(()=>{});
-        // #endregion
+
         this.interval = setInterval(() => {
             if (this.duration !== null) {
                 // countdown
@@ -101,21 +87,6 @@ class Timer {
         } else {
             elapsed = this.time;
         }
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
-            method:'POST',
-            headers:{'Content-Type':'application/json'},
-            body:JSON.stringify({
-                sessionId:'debug-session',
-                runId:'timer-debug',
-                hypothesisId:'T2',
-                location:'game.js:53',
-                message:'Timer.stop called',
-                data:{finalTime:this.time},
-                timestamp:Date.now()
-            })
-        }).catch(()=>{});
-        // #endregion
         return elapsed;
     }
 
@@ -208,8 +179,17 @@ class UI {
             const li = document.createElement("li");
             li.textContent = name;
             li.addEventListener("click", () => {
-                this.optionContainer.value = name;
+                // Update both the search input and set the selected answer
                 this.searchInput.value = name;
+                // Store the selected answer for submission
+                this.searchInput.dataset.selected = name;
+                // Clear the list after selection
+                this.searchList.innerHTML = "";
+                // Visual feedback
+                this.searchInput.style.background = "#2a4a2a";
+                setTimeout(() => {
+                    this.searchInput.style.background = "";
+                }, 300);
             });
             this.searchList.appendChild(li);
         });
@@ -297,9 +277,20 @@ class Game {
             }
         });
 
-        // Search input
+        // Search input - show all options when focused
+        this.ui.searchInput.addEventListener("focus", () => {
+            // Show all available options when clicking into search
+            const allOptions = this.soundFiles.map(f => formatName(f));
+            this.ui.populateSearchList(allOptions);
+        });
+
+        // Search input - filter as user types
         this.ui.searchInput.addEventListener("input", () => {
             const query = this.ui.searchInput.value.toLowerCase();
+            
+            // Clear selected answer when user starts typing again
+            delete this.ui.searchInput.dataset.selected;
+            
             const filtered = this.soundFiles
                 .map(f => formatName(f))
                 .filter(name => name.toLowerCase().includes(query));
@@ -343,22 +334,6 @@ class Game {
                 if (e.target.value !== "off" && this.soundFiles.length > 0) {
                     this.newRound();
                 }
-
-                // #region agent log
-                fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
-                    method:'POST',
-                    headers:{'Content-Type':'application/json'},
-                    body:JSON.stringify({
-                        sessionId:'debug-session',
-                        runId:'timer-debug',
-                        hypothesisId:'T1',
-                        location:'game.js:213',
-                        message:'Timer mode changed',
-                        data:{mode:e.target.value},
-                        timestamp:Date.now()
-                    })
-                }).catch(()=>{});
-                // #endregion
             });
         });
 
@@ -372,7 +347,7 @@ class Game {
             document.getElementById("leaderboardPanel").classList.toggle("open");
         });
 
-        // ⭐ NEW: Volume slider controls background video too
+        // Volume slider controls background video too
         const bgVideo = document.getElementById("bgVideo");
         const volumeSlider = document.getElementById("volumeSlider");
 
@@ -391,23 +366,15 @@ class Game {
     newRound() {
         this.stats.roundsCompleted++;
 
+        // Clear search input for new round
+        if (this.ui.searchInput) {
+            this.ui.searchInput.value = "";
+            delete this.ui.searchInput.dataset.selected;
+            this.ui.searchList.innerHTML = "";
+        }
+
         if (this.settings.timerMode !== "off") {
             this.timer.start(this.getTimerDuration());
-            // #region agent log
-            fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({
-                    sessionId:'debug-session',
-                    runId:'timer-debug',
-                    hypothesisId:'T3',
-                    location:'game.js:248',
-                    message:'newRound started timer',
-                    data:{timerMode:this.settings.timerMode},
-                    timestamp:Date.now()
-                })
-            }).catch(()=>{});
-            // #endregion
         }
 
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
@@ -451,10 +418,6 @@ class Game {
         const list = [...options].sort(() => Math.random() - 0.5);
 
         list.forEach(name => this.ui.addOption(name));
-
-        if (this.settings.searchMode) {
-            this.ui.populateSearchList(list);
-        }
     }
 
     updateStatsUI() {
@@ -513,17 +476,26 @@ Average time this run: ${avgText}`;
     handleTimeout() {
         // Timer-mode-only loss that does not affect overall stats
         if (this.settings.timerMode === "off") return;
-        this.showScoreModal("Time\u2019s Up!");
+        this.showScoreModal("Time's Up!");
     }
 
     handleGuess() {
-        const guess = this.ui.optionContainer.value;
+        let guess;
+        
+        // Get guess from search mode or dropdown
+        if (this.settings.searchMode) {
+            guess = this.ui.searchInput.dataset.selected;
+        } else {
+            guess = this.ui.optionContainer.value;
+        }
 
-        // Require the player to choose an option (ignore placeholder)
+        // Require the player to choose an option
         if (!guess) {
             const result = document.getElementById("result");
             if (result) {
-                result.textContent = "Please choose an option.";
+                result.textContent = this.settings.searchMode 
+                    ? "Please select an option from the list." 
+                    : "Please choose an option.";
                 result.style.color = "white";
             }
             return;
