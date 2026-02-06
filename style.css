@@ -1,5 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap');
-
+#leaderboardPanel.open { 
+    left: 0
+}
 body {
     margin: 0;
     padding: 40px;
