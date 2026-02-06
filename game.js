@@ -294,6 +294,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("submitBtn").addEventListener("click", () => {
         game.handleGuess();
+        // Allow background video audio after first user interaction
+document.addEventListener("click", () => {
+    const bgVideo = document.getElementById("bgVideo");
+    bgVideo.muted = false;
+    bgVideo.volume = document.getElementById("volumeSlider").value / 100;
+}, { once: true });
+
     });
 
     game.ui.setBackground("backgrounds/Classic.mp4");
