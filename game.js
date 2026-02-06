@@ -212,7 +212,10 @@ class Game {
             losses: 0,
             bestStreak: 0,
             fastestTime: Infinity,
-            roundsCompleted: 0
+            roundsCompleted: 0,
+            easyModeWins: 0,
+            mediumModeWins: 0,
+            hardModeWins: 0
         };
 
         this.settings = {
@@ -517,6 +520,16 @@ Average time this run: ${avgText}`;
         if (correct) {
             this.stats.wins++;
             this.stats.bestStreak++;
+            
+            // Track mode-specific wins
+            if (this.settings.timerMode === "easy") {
+                this.stats.easyModeWins++;
+            } else if (this.settings.timerMode === "medium") {
+                this.stats.mediumModeWins++;
+            } else if (this.settings.timerMode === "hard") {
+                this.stats.hardModeWins++;
+            }
+            
             if (time !== null) {
                 this.updateSessionStatsOnCorrect(time);
             }
@@ -548,7 +561,10 @@ window.gameStats = {
     get fastestTime() { return game?.stats.fastestTime ?? Infinity; },
     get bestStreak() { return game?.stats.bestStreak ?? 0; },
     get timerMode() { return game?.settings.timerMode ?? "off"; },
-    get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; }
+    get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; },
+    get easyModeWins() { return game?.stats.easyModeWins ?? 0; },
+    get mediumModeWins() { return game?.stats.mediumModeWins ?? 0; },
+    get hardModeWins() { return game?.stats.hardModeWins ?? 0; }
 };
 
 // ===============================
