@@ -1,9 +1,8 @@
 // ===============================
 // Hollow Knight Sound Guessing Game
-// Merged for current test branch
+// Final merged version
 // ===============================
 
-// Utility: Format filenames → Display names
 function formatName(filename) {
     return filename
         .replace(".mp3", "")
@@ -11,9 +10,6 @@ function formatName(filename) {
         .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// ===============================
-// Sound Manager
-// ===============================
 class SoundManager {
     constructor(volumeSlider) {
         this.audio = new Audio();
@@ -31,9 +27,6 @@ class SoundManager {
     }
 }
 
-// ===============================
-// Timer Utility
-// ===============================
 class Timer {
     constructor(displayElement) {
         this.display = displayElement;
@@ -62,16 +55,16 @@ class Timer {
     }
 }
 
-// ===============================
-// UI Helper
-// ===============================
 class UI {
     constructor() {
         this.optionContainer = document.getElementById("choices");
+        this.searchContainer = document.getElementById("searchContainer");
+        this.searchInput = document.getElementById("searchInput");
+        this.searchList = document.getElementById("searchList");
+
         this.streakDisplay = document.getElementById("streak");
         this.fastestDisplay = document.getElementById("fastestTime");
         this.backgroundSelect = document.getElementById("bgSelect");
-        this.searchToggle = document.getElementById("searchToggle");
         this.optionCount = document.getElementById("optionCount");
         this.timerMode = document.getElementsByName("timerMode");
     }
@@ -80,6 +73,7 @@ class UI {
         const bgVideo = document.getElementById("bgVideo");
         if (bgVideo && src) {
             bgVideo.src = src;
+            bgVideo.volume = document.getElementById("volumeSlider").value / 100;
             bgVideo.load();
             bgVideo.play().catch(() => {
                 const playOnInteract = () => {
@@ -102,23 +96,30 @@ class UI {
     }
 
     clearOptions() {
-        if (this.optionContainer) {
-            this.optionContainer.innerHTML = "";
-        }
+        this.optionContainer.innerHTML = "";
     }
 
     addOption(text) {
-        if (!this.optionContainer) return;
         const option = document.createElement("option");
         option.value = text;
         option.textContent = text;
         this.optionContainer.appendChild(option);
     }
+
+    populateSearchList(options) {
+        this.searchList.innerHTML = "";
+        options.forEach(name => {
+            const li = document.createElement("li");
+            li.textContent = name;
+            li.addEventListener("click", () => {
+                this.optionContainer.value = name;
+                this.searchInput.value = name;
+            });
+            this.searchList.appendChild(li);
+        });
+    }
 }
 
-// ===============================
-// Main Game Class
-// ===============================
 class Game {
     constructor() {
         this.soundFolder = "sounds/";
@@ -136,7 +137,7 @@ class Game {
         this.settings = {
             searchMode: false,
             optionCount: 5,
-            timerMode: "off" // match HTML default
+            timerMode: "off"
         };
 
         this.ui = new UI();
@@ -147,90 +148,69 @@ class Game {
     }
 
     bindUI() {
-        const playBtn = document.getElementById("playBtn");
-        if (playBtn) {
-            playBtn.addEventListener("click", () => {
-                if (this.currentSound) {
-                    this.soundManager.play(this.soundFolder + this.currentSound);
-                }
-            });
-        }
+        document.getElementById("playBtn").addEventListener("click", () => {
+            if (this.currentSound) {
+                this.soundManager.play(this.soundFolder + this.currentSound);
+            }
+        });
 
-        if (this.ui.backgroundSelect) {
-            this.ui.backgroundSelect.addEventListener("change", e => {
-                this.ui.setBackground(e.target.value);
-            });
-        }
+        this.ui.backgroundSelect.addEventListener("change", e => {
+            this.ui.setBackground(e.target.value);
+        });
 
         const searchToggle = document.getElementById("searchToggle");
-        const searchContainer = document.getElementById("searchContainer");
-        const choices = document.getElementById("choices");
+        searchToggle.addEventListener("click", () => {
+            this.settings.searchMode = !this.settings.searchMode;
 
-        if (searchToggle && searchContainer && choices) {
-            searchToggle.addEventListener("click", () => {
-                this.settings.searchMode = !this.settings.searchMode;
-                if (this.settings.searchMode) {
-                    searchContainer.style.display = "block";
-                    choices.style.display = "none";
-                    searchToggle.textContent = "Disable Search";
-                } else {
-                    searchContainer.style.display = "none";
-                    choices.style.display = "block";
-                    searchToggle.textContent = "Enable Search";
-                }
-            });
-        }
+            if (this.settings.searchMode) {
+                this.ui.searchContainer.style.display = "block";
+                this.ui.optionContainer.style.display = "none";
+                searchToggle.textContent = "Disable Search";
+            } else {
+                this.ui.searchContainer.style.display = "none";
+                this.ui.optionContainer.style.display = "block";
+                searchToggle.textContent = "Enable Search";
+            }
+        });
 
-        if (this.ui.optionCount) {
-            this.ui.optionCount.addEventListener("input", e => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val) && val > 0) {
-                    this.settings.optionCount = val;
-                }
-            });
-        }
+        this.ui.searchInput.addEventListener("input", () => {
+            const query = this.ui.searchInput.value.toLowerCase();
+            const filtered = this.soundFiles
+                .map(f => formatName(f))
+                .filter(name => name.toLowerCase().includes(query));
 
-        if (this.ui.timerMode) {
-            this.ui.timerMode.forEach(radio => {
-                radio.addEventListener("change", e => {
-                    this.settings.timerMode = e.target.value;
-                    const timerDisplay = document.getElementById("timerDisplay");
-                    if (timerDisplay) {
-                        timerDisplay.style.display =
-                            e.target.value === "off" ? "none" : "block";
-                    }
-                });
-            });
-        }
+            this.ui.populateSearchList(filtered);
+        });
 
-        const menuBtn = document.getElementById("menuBtn");
-        const menuPanel = document.getElementById("menuPanel");
-        if (menuBtn && menuPanel) {
-            menuBtn.addEventListener("click", () => {
-                menuPanel.classList.toggle("open");
-            });
-        }
+        this.ui.optionCount.addEventListener("input", e => {
+            const val = parseInt(e.target.value);
+            if (!isNaN(val) && val > 0) {
+                this.settings.optionCount = val;
+            }
+        });
 
-        const leaderboardBtn = document.getElementById("leaderboardBtn");
-        const leaderboardPanel = document.getElementById("leaderboardPanel");
-        if (leaderboardBtn && leaderboardPanel) {
-            leaderboardBtn.addEventListener("click", () => {
-                leaderboardPanel.classList.toggle("open");
+        this.ui.timerMode.forEach(radio => {
+            radio.addEventListener("change", e => {
+                this.settings.timerMode = e.target.value;
+                document.getElementById("timerDisplay").style.display =
+                    e.target.value === "off" ? "none" : "block";
             });
-        }
+        });
+
+        document.getElementById("menuBtn").addEventListener("click", () => {
+            document.getElementById("menuPanel").classList.toggle("open");
+        });
+
+        document.getElementById("leaderboardBtn").addEventListener("click", () => {
+            document.getElementById("leaderboardPanel").classList.toggle("open");
+        });
     }
 
     async loadSounds() {
-        try {
-            const response = await fetch(this.soundFolder + "list.json");
-            this.soundFiles = await response.json();
-            if (this.ui.optionCount) {
-                this.ui.optionCount.max = this.soundFiles.length;
-            }
-            this.newRound();
-        } catch (e) {
-            console.error("Failed to load sounds/list.json", e);
-        }
+        const response = await fetch(this.soundFolder + "list.json");
+        this.soundFiles = await response.json();
+        this.ui.optionCount.max = this.soundFiles.length;
+        this.newRound();
     }
 
     newRound() {
@@ -240,18 +220,15 @@ class Game {
             this.timer.start();
         }
 
-        if (!this.soundFiles.length) return;
-
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
         this.correctName = formatName(this.currentSound);
 
-        const actualOptionCount = Math.min(this.settings.optionCount, this.soundFiles.length);
-        this.buildOptions(actualOptionCount);
+        const count = Math.min(this.settings.optionCount, this.soundFiles.length);
+        this.buildOptions(count);
     }
 
     buildOptions(count) {
         this.ui.clearOptions();
-        if (!this.soundFiles.length) return;
 
         const options = new Set([this.correctName]);
 
@@ -260,53 +237,47 @@ class Game {
             options.add(formatName(random));
         }
 
-        [...options]
-            .sort(() => Math.random() - 0.5)
-            .forEach(name => this.ui.addOption(name));
+        const list = [...options].sort(() => Math.random() - 0.5);
+
+        list.forEach(name => this.ui.addOption(name));
+
+        if (this.settings.searchMode) {
+            this.ui.populateSearchList(list);
+        }
     }
 
     handleGuess() {
-        if (!this.ui.optionContainer) return;
-
         const guess = this.ui.optionContainer.value;
         const correct = guess === this.correctName;
 
         if (this.settings.timerMode !== "off") {
             const time = this.timer.stop();
-            if (correct && (time < this.stats.fastestTime || this.stats.fastestTime === Infinity)) {
+            if (correct && time < this.stats.fastestTime) {
                 this.stats.fastestTime = time;
                 this.ui.updateFastest(time);
             }
         }
 
-        const resultEl = document.getElementById("result");
-        const winsEl = document.getElementById("wins");
+        const result = document.getElementById("result");
 
         if (correct) {
             this.stats.wins++;
-            if (winsEl) winsEl.textContent = this.stats.wins;
+            document.getElementById("wins").textContent = this.stats.wins;
             this.stats.bestStreak++;
             this.ui.updateStreak(this.stats.bestStreak);
-            if (resultEl) {
-                resultEl.textContent = "Correct!";
-                resultEl.style.color = "lightgreen";
-            }
+            result.textContent = "Correct!";
+            result.style.color = "lightgreen";
         } else {
             this.stats.bestStreak = 0;
             this.ui.updateStreak(0);
-            if (resultEl) {
-                resultEl.textContent = "Wrong! It was: " + this.correctName;
-                resultEl.style.color = "salmon";
-            }
+            result.textContent = "Wrong! It was: " + this.correctName;
+            result.style.color = "salmon";
         }
 
         this.newRound();
     }
 }
 
-// ===============================
-// Leaderboard Export
-// ===============================
 let game = null;
 
 window.gameStats = {
@@ -317,22 +288,13 @@ window.gameStats = {
     get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; }
 };
 
-// ===============================
-// Initialize Game
-// ===============================
 document.addEventListener("DOMContentLoaded", () => {
     game = new Game();
     game.loadSounds();
 
-    const submitBtn = document.getElementById("submitBtn");
-    if (submitBtn) {
-        submitBtn.addEventListener("click", () => {
-            game.handleGuess();
-        });
-    }
+    document.getElementById("submitBtn").addEventListener("click", () => {
+        game.handleGuess();
+    });
 
-    if (game.ui.backgroundSelect) {
-        const initial = game.ui.backgroundSelect.value || "backgrounds/Classic.mp4";
-        game.ui.setBackground(initial);
-    }
+    game.ui.setBackground("backgrounds/Classic.mp4");
 });
