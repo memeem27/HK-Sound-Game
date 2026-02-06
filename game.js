@@ -18,10 +18,10 @@ class SoundManager {
     constructor(volumeSlider) {
         this.audio = new Audio();
         this.volumeSlider = volumeSlider;
-        this.audio.volume = volumeSlider.value;
+        this.audio.volume = volumeSlider.value / 100;
 
         volumeSlider.addEventListener("input", () => {
-            this.audio.volume = volumeSlider.value;
+            this.audio.volume = volumeSlider.value / 100;
         });
     }
 
@@ -65,42 +65,54 @@ class Timer {
 // ===============================
 class UI {
     constructor() {
-        this.optionContainer = document.getElementById("options");
-        this.roundDisplay = document.getElementById("roundDisplay");
-        this.streakDisplay = document.getElementById("streakDisplay");
+        this.optionContainer = document.getElementById("choices");
+        this.roundDisplay = document.getElementById("wins"); // Assuming wins as proxy for round for now or just fixing the ID
+        this.streakDisplay = document.getElementById("streak");
         this.fastestDisplay = document.getElementById("fastestTime");
-        this.backgroundSelect = document.getElementById("backgroundSelect");
+        this.backgroundSelect = document.getElementById("bgSelect");
         this.searchToggle = document.getElementById("searchToggle");
         this.optionCount = document.getElementById("optionCount");
-        this.timerMode = document.getElementById("timerMode");
+        this.timerMode = document.getElementsByName("timerMode");
     }
 
     setBackground(image) {
-        document.body.style.backgroundImage = `url(${image})`;
+        const bgVideo = document.getElementById("bgVideo");
+        if (bgVideo && image) {
+            bgVideo.src = image;
+            bgVideo.load();
+            bgVideo.play().catch(e => {
+                console.log("Video play failed, retrying on user interaction:", e);
+                // Handle autoplay restrictions
+                const playOnInteract = () => {
+                    bgVideo.play();
+                    document.removeEventListener("click", playOnInteract);
+                };
+                document.addEventListener("click", playOnInteract);
+            });
+        }
     }
 
     updateRound(n) {
-        this.roundDisplay.textContent = n;
+        // Round display doesn't exist in HTML, skipping or mapping to something else
     }
 
     updateStreak(n) {
-        this.streakDisplay.textContent = n;
+        if (this.streakDisplay) this.streakDisplay.textContent = n;
     }
 
     updateFastest(t) {
-        this.fastestDisplay.textContent = t.toFixed(1) + "s";
+        if (this.fastestDisplay) this.fastestDisplay.textContent = t.toFixed(1) + "s";
     }
 
     clearOptions() {
         this.optionContainer.innerHTML = "";
     }
 
-    addOption(text, callback) {
-        const btn = document.createElement("button");
-        btn.className = "optionBtn";
-        btn.textContent = text;
-        btn.onclick = callback;
-        this.optionContainer.appendChild(btn);
+    addOption(text) {
+        const option = document.createElement("option");
+        option.value = text;
+        option.textContent = text;
+        this.optionContainer.appendChild(option);
     }
 }
 
@@ -137,27 +149,74 @@ class Game {
     }
 
     bindUI() {
-        document.getElementById("playBtn").addEventListener("click", () => {
-            if (this.currentSound) {
-                this.soundManager.play(this.soundFolder + this.currentSound);
-            }
-        });
+        const playBtn = document.getElementById("playBtn");
+        if (playBtn) {
+            playBtn.addEventListener("click", () => {
+                if (this.currentSound) {
+                    this.soundManager.play(this.soundFolder + this.currentSound);
+                }
+            });
+        }
 
-        this.ui.backgroundSelect.addEventListener("change", e => {
-            this.ui.setBackground(e.target.value);
-        });
+        if (this.ui.backgroundSelect) {
+            this.ui.backgroundSelect.addEventListener("change", e => {
+                this.ui.setBackground(e.target.value);
+            });
+        }
 
-        this.ui.searchToggle.addEventListener("change", e => {
-            this.settings.searchMode = e.target.checked;
-        });
+        const searchToggle = document.getElementById("searchToggle");
+        if (searchToggle) {
+            searchToggle.addEventListener("click", () => {
+                this.settings.searchMode = !this.settings.searchMode;
+                const container = document.getElementById("searchContainer");
+                const choices = document.getElementById("choices");
+                if (container && choices) {
+                    if (this.settings.searchMode) {
+                        container.style.display = "block";
+                        choices.style.display = "none";
+                        searchToggle.textContent = "Disable Search";
+                    } else {
+                        container.style.display = "none";
+                        choices.style.display = "block";
+                        searchToggle.textContent = "Enable Search";
+                    }
+                }
+            });
+        }
 
-        this.ui.optionCount.addEventListener("input", e => {
-            this.settings.optionCount = parseInt(e.target.value);
-        });
+        if (this.ui.optionCount) {
+            this.ui.optionCount.addEventListener("input", e => {
+                this.settings.optionCount = parseInt(e.target.value);
+            });
+        }
 
-        this.ui.timerMode.addEventListener("change", e => {
-            this.settings.timerMode = e.target.value;
-        });
+        if (this.ui.timerMode) {
+            this.ui.timerMode.forEach(radio => {
+                radio.addEventListener("change", e => {
+                    this.settings.timerMode = e.target.value;
+                    const timerDisplay = document.getElementById("timerDisplay");
+                    if (timerDisplay) {
+                        timerDisplay.style.display = (e.target.value === "off") ? "none" : "block";
+                    }
+                });
+            });
+        }
+
+        const menuBtn = document.getElementById("menuBtn");
+        const menuPanel = document.getElementById("menuPanel");
+        if (menuBtn && menuPanel) {
+            menuBtn.addEventListener("click", () => {
+                menuPanel.classList.toggle("open");
+            });
+        }
+
+        const leaderboardBtn = document.getElementById("leaderboardBtn");
+        const leaderboardPanel = document.getElementById("leaderboardPanel");
+        if (leaderboardBtn && leaderboardPanel) {
+            leaderboardBtn.addEventListener("click", () => {
+                leaderboardPanel.classList.toggle("open");
+            });
+        }
     }
 
     async loadSounds() {
@@ -169,10 +228,10 @@ class Game {
 
     newRound() {
         this.stats.roundsCompleted++;
-        this.ui.updateRound(this.stats.roundsCompleted);
+        // this.ui.updateRound(this.stats.roundsCompleted);
 
         // Timer
-        if (this.settings.timerMode !== "none") {
+        if (this.settings.timerMode !== "off") {
             this.timer.start();
         }
 
@@ -202,11 +261,12 @@ class Game {
     }
 
     handleGuess(name) {
-        const correct = name === this.correctName;
+        const guess = this.ui.optionContainer.value;
+        const correct = guess === this.correctName;
 
-        if (this.settings.timerMode !== "none") {
+        if (this.settings.timerMode !== "off") {
             const time = this.timer.stop();
-            if (correct && time < this.stats.fastestTime) {
+            if (correct && (time < this.stats.fastestTime || this.stats.fastestTime === Infinity)) {
                 this.stats.fastestTime = time;
                 this.ui.updateFastest(time);
             }
@@ -214,22 +274,21 @@ class Game {
 
         if (correct) {
             this.stats.wins++;
+            document.getElementById("wins").textContent = this.stats.wins;
             this.stats.bestStreak++;
             this.ui.updateStreak(this.stats.bestStreak);
+            document.getElementById("result").textContent = "Correct!";
+            document.getElementById("result").style.color = "lightgreen";
         } else {
             this.stats.bestStreak = 0;
             this.ui.updateStreak(0);
+            document.getElementById("result").textContent = "Wrong! It was: " + this.correctName;
+            document.getElementById("result").style.color = "salmon";
         }
 
         this.newRound();
     }
 }
-
-// ===============================
-// Initialize Game
-// ===============================
-const game = new Game();
-game.loadSounds();
 
 // ===============================
 // Leaderboard Export
@@ -241,22 +300,17 @@ window.gameStats = {
     get timerMode() { return game.settings.timerMode },
     get roundsCompleted() { return game.stats.roundsCompleted }
 };
-document.addEventListener("DOMContentLoaded", () => {
 
-    const bgVideo = document.getElementById("bgVideo");
-    const bgSelect = document.getElementById("bgSelect");
+// ===============================
+// Initialize Game
+// ===============================
+const game = new Game();
+game.loadSounds();
 
-    function updateBackground() {
-        const file = bgSelect.value;
-        if (file) {
-            bgVideo.src = file;
-            bgVideo.play();
-        }
-    }
-
-    bgSelect.addEventListener("change", updateBackground);
-
-    // Load default background
-    updateBackground();
-
+document.getElementById("submitBtn").addEventListener("click", () => {
+    game.handleGuess();
 });
+
+// Remove duplicate background logic that might conflict with Game class
+// document.addEventListener("DOMContentLoaded", () => { ... });
+
