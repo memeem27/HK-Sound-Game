@@ -39,20 +39,84 @@ class Timer {
         this.display = displayElement;
         this.time = 0;
         this.interval = null;
+        this.duration = null;
+        this.onTimeout = null;
     }
 
-    start() {
-        this.time = 0;
+    start(durationSeconds) {
+        // reset any existing interval
+        clearInterval(this.interval);
+
+        if (typeof durationSeconds === "number" && durationSeconds > 0) {
+            // countdown mode
+            this.duration = durationSeconds;
+            this.time = durationSeconds;
+        } else {
+            // simple stopwatch mode
+            this.duration = null;
+            this.time = 0;
+        }
+
         this.updateDisplay();
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                sessionId:'debug-session',
+                runId:'timer-debug',
+                hypothesisId:'T2',
+                location:'game.js:44',
+                message:'Timer.start called',
+                data:{initialTime:this.time},
+                timestamp:Date.now()
+            })
+        }).catch(()=>{});
+        // #endregion
         this.interval = setInterval(() => {
-            this.time += 0.1;
-            this.updateDisplay();
+            if (this.duration !== null) {
+                // countdown
+                this.time = Math.max(0, this.time - 0.1);
+                this.updateDisplay();
+                if (this.time <= 0) {
+                    clearInterval(this.interval);
+                    if (typeof this.onTimeout === "function") {
+                        this.onTimeout();
+                    }
+                }
+            } else {
+                // count up
+                this.time += 0.1;
+                this.updateDisplay();
+            }
         }, 100);
     }
 
     stop() {
         clearInterval(this.interval);
-        return this.time;
+        let elapsed;
+        if (this.duration !== null) {
+            // duration - remaining
+            elapsed = this.duration - this.time;
+        } else {
+            elapsed = this.time;
+        }
+        // #region agent log
+        fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                sessionId:'debug-session',
+                runId:'timer-debug',
+                hypothesisId:'T2',
+                location:'game.js:53',
+                message:'Timer.stop called',
+                data:{finalTime:this.time},
+                timestamp:Date.now()
+            })
+        }).catch(()=>{});
+        // #endregion
+        return elapsed;
     }
 
     updateDisplay() {
@@ -72,6 +136,9 @@ class UI {
         this.searchInput = document.getElementById("searchInput");
         this.searchList = document.getElementById("searchList");
 
+        this.winsDisplay = document.getElementById("wins");
+        this.lossesDisplay = document.getElementById("losses");
+        this.winLossDisplay = document.getElementById("winLossRatio");
         this.streakDisplay = document.getElementById("streak");
         this.fastestDisplay = document.getElementById("fastestTime");
         this.backgroundSelect = document.getElementById("bgSelect");
@@ -93,6 +160,25 @@ class UI {
                 document.addEventListener("click", playOnInteract);
             });
         }
+    }
+
+    updateWins(n) {
+        if (this.winsDisplay) this.winsDisplay.textContent = n;
+    }
+
+    updateLosses(n) {
+        if (this.lossesDisplay) this.lossesDisplay.textContent = n;
+    }
+
+    updateWinLossRatio(wins, losses) {
+        if (!this.winLossDisplay) return;
+        let ratioText = "0";
+        if (losses === 0) {
+            ratioText = wins > 0 ? "∞" : "0";
+        } else {
+            ratioText = (wins / losses).toFixed(2);
+        }
+        this.winLossDisplay.textContent = ratioText;
     }
 
     updateStreak(n) {
@@ -142,6 +228,7 @@ class Game {
 
         this.stats = {
             wins: 0,
+            losses: 0,
             bestStreak: 0,
             fastestTime: Infinity,
             roundsCompleted: 0
@@ -155,9 +242,30 @@ class Game {
 
         this.ui = new UI();
         this.timer = new Timer(document.getElementById("timerDisplay"));
+        this.timer.onTimeout = () => this.handleTimeout();
         this.soundManager = new SoundManager(document.getElementById("volumeSlider"));
 
+        this.sessionStats = {
+            streak: 0,
+            fastestTime: Infinity,
+            totalTime: 0,
+            rounds: 0
+        };
+
+        this.scoreModal = document.getElementById("scoreModal");
+        this.scoreTitle = document.getElementById("scoreTitle");
+        this.scoreText = document.getElementById("scoreText");
+        this.playAgainBtn = document.getElementById("playAgainBtn");
+
         this.bindUI();
+        this.updateStatsUI();
+
+        if (this.playAgainBtn) {
+            this.playAgainBtn.addEventListener("click", () => {
+                this.hideScoreModal();
+                this.newRound();
+            });
+        }
     }
 
     bindUI() {
@@ -201,9 +309,23 @@ class Game {
 
         // Option count
         this.ui.optionCount.addEventListener("input", e => {
-            const val = parseInt(e.target.value);
-            if (!isNaN(val) && val > 0) {
-                this.settings.optionCount = val;
+            const val = parseInt(e.target.value, 10);
+            if (isNaN(val)) return;
+
+            // Enforce minimum of 5 options
+            let clamped = Math.max(5, val);
+
+            // Optional: don't allow more than total sounds once loaded
+            if (this.soundFiles.length > 0) {
+                clamped = Math.min(clamped, this.soundFiles.length);
+            }
+
+            this.settings.optionCount = clamped;
+            e.target.value = clamped;
+
+            // When the number of options changes, refresh the question
+            if (this.soundFiles.length > 0) {
+                this.newRound();
             }
         });
 
@@ -211,8 +333,32 @@ class Game {
         this.ui.timerMode.forEach(radio => {
             radio.addEventListener("change", e => {
                 this.settings.timerMode = e.target.value;
-                document.getElementById("timerDisplay").style.display =
+                const timerDisplay = document.getElementById("timerDisplay");
+                timerDisplay.style.display =
                     e.target.value === "off" ? "none" : "block";
+
+                // When a timer mode is selected, immediately start a new
+                // timed round (once sounds are loaded) so the countdown
+                // begins right away.
+                if (e.target.value !== "off" && this.soundFiles.length > 0) {
+                    this.newRound();
+                }
+
+                // #region agent log
+                fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        sessionId:'debug-session',
+                        runId:'timer-debug',
+                        hypothesisId:'T1',
+                        location:'game.js:213',
+                        message:'Timer mode changed',
+                        data:{mode:e.target.value},
+                        timestamp:Date.now()
+                    })
+                }).catch(()=>{});
+                // #endregion
             });
         });
 
@@ -246,7 +392,22 @@ class Game {
         this.stats.roundsCompleted++;
 
         if (this.settings.timerMode !== "off") {
-            this.timer.start();
+            this.timer.start(this.getTimerDuration());
+            // #region agent log
+            fetch('http://127.0.0.1:7242/ingest/51a3847b-49b2-484f-af17-25aabd6b350d',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({
+                    sessionId:'debug-session',
+                    runId:'timer-debug',
+                    hypothesisId:'T3',
+                    location:'game.js:248',
+                    message:'newRound started timer',
+                    data:{timerMode:this.settings.timerMode},
+                    timestamp:Date.now()
+                })
+            }).catch(()=>{});
+            // #endregion
         }
 
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
@@ -256,8 +417,29 @@ class Game {
         this.buildOptions(count);
     }
 
+    getTimerDuration() {
+        switch (this.settings.timerMode) {
+            case "easy":
+                return 45;
+            case "medium":
+                return 30;
+            case "hard":
+                return 15;
+            default:
+                return 0;
+        }
+    }
+
     buildOptions(count) {
         this.ui.clearOptions();
+
+        // Add placeholder option so nothing is selected by default
+        const placeholder = document.createElement("option");
+        placeholder.value = "";
+        placeholder.textContent = "Choose option";
+        placeholder.disabled = true;
+        placeholder.selected = true;
+        this.ui.optionContainer.appendChild(placeholder);
 
         const options = new Set([this.correctName]);
 
@@ -275,15 +457,85 @@ class Game {
         }
     }
 
+    updateStatsUI() {
+        this.ui.updateWins(this.stats.wins);
+        this.ui.updateLosses(this.stats.losses);
+        this.ui.updateWinLossRatio(this.stats.wins, this.stats.losses);
+        this.ui.updateStreak(this.stats.bestStreak);
+        this.ui.updateFastest(this.stats.fastestTime);
+    }
+
+    updateSessionStatsOnCorrect(time) {
+        if (this.settings.timerMode === "off") return;
+        this.sessionStats.streak++;
+        this.sessionStats.totalTime += time;
+        this.sessionStats.rounds++;
+        if (time < this.sessionStats.fastestTime) {
+            this.sessionStats.fastestTime = time;
+        }
+    }
+
+    getSessionSummaryText() {
+        const streak = this.sessionStats.streak;
+        const fastest = this.sessionStats.fastestTime;
+        const rounds = this.sessionStats.rounds;
+        const avg = rounds > 0 ? this.sessionStats.totalTime / rounds : null;
+
+        const fastestText = fastest === Infinity ? "N/A" : fastest.toFixed(1) + "s";
+        const avgText = avg === null ? "N/A" : avg.toFixed(1) + "s";
+
+        return `Streak this run: ${streak}
+Fastest time this run: ${fastestText}
+Average time this run: ${avgText}`;
+    }
+
+    resetSessionStats() {
+        this.sessionStats.streak = 0;
+        this.sessionStats.fastestTime = Infinity;
+        this.sessionStats.totalTime = 0;
+        this.sessionStats.rounds = 0;
+    }
+
+    showScoreModal(title) {
+        if (!this.scoreModal || !this.scoreText) return;
+        if (this.scoreTitle) this.scoreTitle.textContent = title;
+        this.scoreText.textContent = this.getSessionSummaryText();
+        if (this.scoreModal) this.scoreModal.style.display = "flex";
+        this.resetSessionStats();
+    }
+
+    hideScoreModal() {
+        if (this.scoreModal) {
+            this.scoreModal.style.display = "none";
+        }
+    }
+
+    handleTimeout() {
+        // Timer-mode-only loss that does not affect overall stats
+        if (this.settings.timerMode === "off") return;
+        this.showScoreModal("Time\u2019s Up!");
+    }
+
     handleGuess() {
         const guess = this.ui.optionContainer.value;
+
+        // Require the player to choose an option (ignore placeholder)
+        if (!guess) {
+            const result = document.getElementById("result");
+            if (result) {
+                result.textContent = "Please choose an option.";
+                result.style.color = "white";
+            }
+            return;
+        }
+
         const correct = guess === this.correctName;
 
+        let time = null;
         if (this.settings.timerMode !== "off") {
-            const time = this.timer.stop();
+            time = this.timer.stop();
             if (correct && time < this.stats.fastestTime) {
                 this.stats.fastestTime = time;
-                this.ui.updateFastest(time);
             }
         }
 
@@ -291,18 +543,26 @@ class Game {
 
         if (correct) {
             this.stats.wins++;
-            document.getElementById("wins").textContent = this.stats.wins;
             this.stats.bestStreak++;
-            this.ui.updateStreak(this.stats.bestStreak);
+            if (time !== null) {
+                this.updateSessionStatsOnCorrect(time);
+            }
             result.textContent = "Correct!";
             result.style.color = "lightgreen";
         } else {
+            this.stats.losses++;
             this.stats.bestStreak = 0;
-            this.ui.updateStreak(0);
             result.textContent = "Wrong! It was: " + this.correctName;
             result.style.color = "salmon";
+
+            if (this.settings.timerMode !== "off") {
+                this.showScoreModal("Incorrect!");
+                this.updateStatsUI();
+                return;
+            }
         }
 
+        this.updateStatsUI();
         this.newRound();
     }
 }
