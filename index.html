@@ -2,78 +2,136 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hollow Knight Sound Guessing Game</title>
+    <title>HK Sound Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
-<div class="container">
+    <!-- Background Video -->
+    <video id="bgVideo" autoplay loop muted></video>
 
-    <!-- LEFT SIDEBAR -->
-    <div class="sidebar">
+    <!-- Timer -->
+    <div id="timerDisplay"></div>
 
-        <h2 class="menu-title">Settings</h2>
-
-        <div class="control-group">
-            <label for="backgroundSelect">Background:</label>
-            <select id="backgroundSelect">
-                <option value="images/bg1.jpg">Background 1</option>
-                <option value="images/bg2.jpg">Background 2</option>
-                <option value="images/bg3.jpg">Background 3</option>
-            </select>
-        </div>
-
-        <div class="control-group">
-            <label for="volumeSlider">Volume:</label>
-            <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="0.5">
-        </div>
-
-        <div class="control-group">
-            <label>
-                <input type="checkbox" id="searchToggle">
-                Search Mode
-            </label>
-        </div>
-
-        <div class="control-group">
-            <label for="optionCount">Options:</label>
-            <input type="number" id="optionCount" min="2" max="20" value="4">
-        </div>
-
-        <div class="control-group">
-            <label for="timerMode">Timer:</label>
-            <select id="timerMode">
-                <option value="none">None</option>
-                <option value="normal">Normal</option>
-                <option value="hard">Hard</option>
-            </select>
-        </div>
-
+    <!-- Stats (centered at top) -->
+    <div id="statsBox">
+        Wins: <span id="wins">0</span> |
+        Losses: <span id="losses">0</span> |
+        Streak: <span id="streak">0</span> |
+        Best: <span id="bestStreak">0</span> |
+        Avg Time: <span id="avgTime">0</span>s |
+        Fastest: <span id="fastestTime">0</span>s
     </div>
 
-    <!-- MAIN GAME AREA -->
-    <div class="main">
+    <!-- Leaderboard Panel -->
+    <div id="leaderboardPanel">
+        <h2>Leaderboard</h2>
 
-        <h1 class="title">Hollow Knight Sound Guessing Game</h1>
+        <!-- Dropdown -->
+        <select id="lbSelect">
+            <option value="wins">Wins</option>
+            <option value="fastest">Fastest Time</option>
+            <option value="streak">Best Streak</option>
+            <option value="easy">Easy Mode</option>
+            <option value="medium">Medium Mode</option>
+            <option value="hard">Hard Mode</option>
+        </select>
 
-        <button id="playBtn" class="sound-button">Play Sound</button>
+        <!-- Submit button -->
+        <button id="submitScoreBtn">Submit Current Stats</button>
 
-        <div id="options" class="options"></div>
-
-        <div class="stats">
-            <p>Round: <span id="roundDisplay">0</span></p>
-            <p>Streak: <span id="streakDisplay">0</span></p>
-            <p>Fastest Time: <span id="fastestTime">0.0s</span></p>
-            <p>Timer: <span id="timerDisplay">0.0s</span></p>
+        <!-- Leaderboard list -->
+        <div id="leaderboardContent">
+            <div class="lb-box">
+                <ul id="lbList"></ul>
+            </div>
         </div>
 
+        <!-- Username -->
+        <div id="lbUsername"></div>
     </div>
 
-</div>
+    <!-- Settings Menu -->
+    <div id="menuPanel">
+        <h2>Background</h2>
 
-<script type="module" src="game-v2.js"></script>
+        <select id="bgSelect">
+            <option disabled>Select Background</option>
+            <option value="Classic.mp4">Classic</option>
+            <option value="Godhome.mp4">Godhome</option>
+            <option value="Hidden Dreams.mp4">Hidden Dreams</option>
+            <option value="Infected.mp4">Infected</option>
+            <option value="Lifeblood.mp4">Lifeblood</option>
+            <option value="SteelSoul.mp4">SteelSoul</option>
+            <option value="The Grimm Troupe.mp4">The Grimm Troupe</option>
+            <option value="Void.mp4">Void</option>
+            <option value="Voidheart.mp4">Voidheart</option>
+            <option value="Zote.mp4" id="zoteOption" disabled>Zote</option>
+        </select>
+
+        <label>Background Volume</label>
+        <input type="range" id="volumeSlider" min="0" max="100" value="35">
+
+        <label>Number of Options</label>
+        <input type="number" id="optionCount" min="5" value="5">
+
+        <button id="searchToggle">Enable Search</button>
+
+        <h2>Timer Mode</h2>
+        <label><input type="radio" name="timerMode" value="off" checked> Off</label>
+        <label><input type="radio" name="timerMode" value="easy"> Easy (45s)</label>
+        <label><input type="radio" name="timerMode" value="medium"> Medium (30s)</label>
+        <label><input type="radio" name="timerMode" value="hard"> Hard (15s)</label>
+    </div>
+
+    <!-- Buttons -->
+    <button id="leaderboardBtn">Leaderboard</button>
+    <button id="menuBtn">Menu</button>
+
+    <!-- Title -->
+    <h1>Hollow Knight Sound Guessing</h1>
+
+    <div class="divider"></div>
+
+    <!-- Play Sound -->
+    <button id="playBtn">Play Sound</button>
+
+    <!-- Choices -->
+    <div class="choiceContainer">
+        <select id="choices"></select>
+
+        <div id="searchContainer">
+            <input id="searchInput" placeholder="Search...">
+            <ul id="searchList"></ul>
+        </div>
+    </div>
+
+    <!-- Submit Guess -->
+    <button id="submitBtn">Submit Guess</button>
+
+    <p id="result"></p>
+
+    <!-- GitHub -->
+    <div id="githubLink">
+        <a href="https://github.com/memeem27/HK-Sound-Game" target="_blank">GitHub</a>
+    </div>
+
+    <!-- Trophy Case -->
+    <div id="trophyCase"></div>
+
+    <!-- Score Modal -->
+    <div id="scoreModal">
+        <div id="scoreContent">
+            <h2 id="scoreTitle">Time’s Up!</h2>
+            <p id="scoreText"></p>
+            <button id="playAgainBtn">Play Again</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="firebase.js"></script>
+    <script type="module" src="leaderboard.js"></script>
+    <script src="game.js"></script>
 
 </body>
 </html>
