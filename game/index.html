@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Sound Guessing Game</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 40px;
+        }
+        select, button {
+            font-size: 18px;
+            padding: 10px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Sound Guessing Game</h1>
+<p>Click "Play Sound" and guess which file it is.</p>
+
+<button id="playBtn">Play Sound</button>
+<button id="replayBtn">Replay</button>
+
+<br>
+
+<select id="dropdown">
+    <option>Select your guess</option>
+</select>
+
+<br>
+
+<button id="submitBtn">Submit Guess</button>
+
+<p id="result"></p>
+
+<script>
+    const soundFolder = "sounds/";
+    let soundFiles = [];
+    let correctAnswer = "";
+    let audio = new Audio();
+
+    // Load all sound files automatically
+    async function loadSounds() {
+        // Browsers can't list folders, so we load a predefined list
+        // You will generate this list automatically below
+        const response = await fetch("sounds/list.json");
+        soundFiles = await response.json();
+        newQuestion();
+    }
+
+    function playSound(file) {
+        audio.src = soundFolder + file;
+        audio.play();
+    }
+
+    function newQuestion() {
+        correctAnswer = soundFiles[Math.floor(Math.random() * soundFiles.length)];
+        playSound(correctAnswer);
+
+        // Pick 5 random options
+        let options = [...soundFiles]
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 5);
+
+        if (!options.includes(correctAnswer)) {
+            options[Math.floor(Math.random() * options.length)] = correctAnswer;
+        }
+
+        const dropdown = document.getElementById("dropdown");
+        dropdown.innerHTML = "<option>Select your guess</option>";
+
+        options.forEach(opt => {
+            let o = document.createElement("option");
+            o.value = opt;
+            o.textContent = opt;
+            dropdown.appendChild(o);
+        });
+    }
+
+    document.getElementById("playBtn").onclick = () => playSound(correctAnswer);
+    document.getElementById("replayBtn").onclick = () => playSound(correctAnswer);
+
+    document.getElementById("submitBtn").onclick = () => {
+        const guess = document.getElementById("dropdown").value;
+        const result = document.getElementById("result");
+
+        if (guess === correctAnswer) {
+            result.textContent = "Correct!";
+            result.style.color = "green";
+        } else {
+            result.textContent = "Wrong! It was: " + correctAnswer;
+            result.style.color = "red";
+        }
+
+        setTimeout(newQuestion, 1500);
+    };
+
+    loadSounds();
+</script>
+
+</body>
+</html>
