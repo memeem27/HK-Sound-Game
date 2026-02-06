@@ -1,8 +1,9 @@
 // ===============================
 // Hollow Knight Sound Guessing Game
-// Final merged version
+// Final merged version (with search, timer, background audio)
 // ===============================
 
+// Utility: Format filenames → Display names
 function formatName(filename) {
     return filename
         .replace(".mp3", "")
@@ -10,6 +11,9 @@ function formatName(filename) {
         .replace(/\b\w/g, c => c.toUpperCase());
 }
 
+// ===============================
+// Sound Manager
+// ===============================
 class SoundManager {
     constructor(volumeSlider) {
         this.audio = new Audio();
@@ -27,6 +31,9 @@ class SoundManager {
     }
 }
 
+// ===============================
+// Timer Utility
+// ===============================
 class Timer {
     constructor(displayElement) {
         this.display = displayElement;
@@ -55,6 +62,9 @@ class Timer {
     }
 }
 
+// ===============================
+// UI Helper
+// ===============================
 class UI {
     constructor() {
         this.optionContainer = document.getElementById("choices");
@@ -120,11 +130,14 @@ class UI {
     }
 }
 
+// ===============================
+// Main Game Class
+// ===============================
 class Game {
     constructor() {
         this.soundFolder = "sounds/";
         this.soundFiles = [];
-        this.currentSound = null;
+       this.currentSound = null;
         this.correctName = null;
 
         this.stats = {
@@ -148,16 +161,19 @@ class Game {
     }
 
     bindUI() {
+        // Play sound
         document.getElementById("playBtn").addEventListener("click", () => {
             if (this.currentSound) {
                 this.soundManager.play(this.soundFolder + this.currentSound);
             }
         });
 
+        // Background change
         this.ui.backgroundSelect.addEventListener("change", e => {
             this.ui.setBackground(e.target.value);
         });
 
+        // Search toggle
         const searchToggle = document.getElementById("searchToggle");
         searchToggle.addEventListener("click", () => {
             this.settings.searchMode = !this.settings.searchMode;
@@ -173,6 +189,7 @@ class Game {
             }
         });
 
+        // Search input
         this.ui.searchInput.addEventListener("input", () => {
             const query = this.ui.searchInput.value.toLowerCase();
             const filtered = this.soundFiles
@@ -182,6 +199,7 @@ class Game {
             this.ui.populateSearchList(filtered);
         });
 
+        // Option count
         this.ui.optionCount.addEventListener("input", e => {
             const val = parseInt(e.target.value);
             if (!isNaN(val) && val > 0) {
@@ -189,6 +207,7 @@ class Game {
             }
         });
 
+        // Timer mode
         this.ui.timerMode.forEach(radio => {
             radio.addEventListener("change", e => {
                 this.settings.timerMode = e.target.value;
@@ -197,10 +216,12 @@ class Game {
             });
         });
 
+        // Menu toggle
         document.getElementById("menuBtn").addEventListener("click", () => {
             document.getElementById("menuPanel").classList.toggle("open");
         });
 
+        // Leaderboard toggle
         document.getElementById("leaderboardBtn").addEventListener("click", () => {
             document.getElementById("leaderboardPanel").classList.toggle("open");
         });
@@ -280,6 +301,7 @@ class Game {
 
 let game = null;
 
+// Leaderboard export
 window.gameStats = {
     get wins() { return game?.stats.wins ?? 0; },
     get fastestTime() { return game?.stats.fastestTime ?? Infinity; },
@@ -288,20 +310,28 @@ window.gameStats = {
     get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; }
 };
 
+// ===============================
+// Initialize Game
+// ===============================
 document.addEventListener("DOMContentLoaded", () => {
     game = new Game();
     game.loadSounds();
 
     document.getElementById("submitBtn").addEventListener("click", () => {
         game.handleGuess();
-        // Allow background video audio after first user interaction
-document.addEventListener("click", () => {
-    const bgVideo = document.getElementById("bgVideo");
-    bgVideo.muted = false;
-    bgVideo.volume = document.getElementById("volumeSlider").value / 100;
-}, { once: true });
-
     });
 
+    // Force Classic background on startup
     game.ui.setBackground("backgrounds/Classic.mp4");
+
+    // Set initial background volume
+    document.getElementById("bgVideo").volume =
+        document.getElementById("volumeSlider").value / 100;
+
+    // Allow background audio after first click
+    document.addEventListener("click", () => {
+        const bgVideo = document.getElementById("bgVideo");
+        bgVideo.muted = false;
+        bgVideo.volume = document.getElementById("volumeSlider").value / 100;
+    }, { once: true });
 });
