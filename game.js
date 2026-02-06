@@ -137,7 +137,7 @@ class Game {
     constructor() {
         this.soundFolder = "sounds/";
         this.soundFiles = [];
-       this.currentSound = null;
+        this.currentSound = null;
         this.correctName = null;
 
         this.stats = {
@@ -224,6 +224,14 @@ class Game {
         // Leaderboard toggle
         document.getElementById("leaderboardBtn").addEventListener("click", () => {
             document.getElementById("leaderboardPanel").classList.toggle("open");
+        });
+
+        // ⭐ NEW: Volume slider controls background video too
+        const bgVideo = document.getElementById("bgVideo");
+        const volumeSlider = document.getElementById("volumeSlider");
+
+        volumeSlider.addEventListener("input", () => {
+            bgVideo.volume = volumeSlider.value / 100;
         });
     }
 
@@ -325,13 +333,13 @@ document.addEventListener("DOMContentLoaded", () => {
     game.ui.setBackground("backgrounds/Classic.mp4");
 
     // Set initial background volume
-    document.getElementById("bgVideo").volume =
-        document.getElementById("volumeSlider").value / 100;
+    const bgVideo = document.getElementById("bgVideo");
+    const volumeSlider = document.getElementById("volumeSlider");
+    bgVideo.volume = volumeSlider.value / 100;
 
     // Allow background audio after first click
     document.addEventListener("click", () => {
-        const bgVideo = document.getElementById("bgVideo");
         bgVideo.muted = false;
-        bgVideo.volume = document.getElementById("volumeSlider").value / 100;
+        bgVideo.volume = volumeSlider.value / 100;
     }, { once: true });
 });
