@@ -10,7 +10,7 @@ import { db } from "./firebase.js";
 
 document.addEventListener("DOMContentLoaded", () => {
 
-    // USERNAME GENERATOR
+    // Username generator
     function generateUsername() {
         const adjectives = [
             "Wandering","Silent","Fallen","Radiant","Broken","Swift",
@@ -41,12 +41,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("lbUsername").textContent = "User: " + username;
 
-    // ELEMENTS
     const lbSelect = document.getElementById("lbSelect");
     const lbList = document.getElementById("lbList");
     const submitScoreBtn = document.getElementById("submitScoreBtn");
 
-    // SUBMIT SCORE
     submitScoreBtn.addEventListener("click", async () => {
         const wins = Number(document.getElementById("wins").textContent);
         const fastest = Number(document.getElementById("fastestTime").textContent);
@@ -70,7 +68,6 @@ document.addEventListener("DOMContentLoaded", () => {
         loadLeaderboard();
     });
 
-    // LOAD LEADERBOARD
     async function loadLeaderboard() {
         const mode = lbSelect.value;
 
@@ -94,5 +91,4 @@ document.addEventListener("DOMContentLoaded", () => {
     lbSelect.addEventListener("change", loadLeaderboard);
 
     loadLeaderboard();
-
 });
