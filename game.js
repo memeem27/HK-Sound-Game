@@ -7,6 +7,7 @@
 function formatName(filename) {
     return filename
         .replace(".mp3", "")
+        .replace(".ogg", "")
         .replace(/_/g, " ")
         .replace(/\b\w/g, c => c.toUpperCase());
 }
