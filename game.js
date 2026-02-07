@@ -13,6 +13,155 @@ function formatName(filename) {
 }
 
 // ===============================
+// Theme Manager
+// ===============================
+class ThemeManager {
+    constructor() {
+        this.themes = {
+            "Classic": {
+                menuBg: "rgba(13, 13, 22, 0.95)",
+                lbBg: "rgba(13, 13, 22, 0.97)",
+                boxBg: "#1a1a2e",
+                accentColor: "#6a6aff",
+                accentGlow: "rgba(120, 120, 255, 0.4)",
+                textColor: "#e6e6f0",
+                textGlow: "#6a6aff",
+                buttonBg: "#2a2a4a",
+                buttonBgHover: "#3a3a6a",
+                inputBg: "#2a2a4a"
+            },
+            "Godhome": {
+                menuBg: "rgba(25, 22, 15, 0.95)",
+                lbBg: "rgba(25, 22, 15, 0.97)",
+                boxBg: "#2e2a1a",
+                accentColor: "#ffd700",
+                accentGlow: "rgba(255, 215, 0, 0.4)",
+                textColor: "#fff8dc",
+                textGlow: "#ffd700",
+                buttonBg: "#3d3520",
+                buttonBgHover: "#4d4530",
+                inputBg: "#3d3520"
+            },
+            "Hidden Dreams": {
+                menuBg: "rgba(20, 13, 22, 0.95)",
+                lbBg: "rgba(20, 13, 22, 0.97)",
+                boxBg: "#2a1a2e",
+                accentColor: "#ff6aff",
+                accentGlow: "rgba(255, 106, 255, 0.4)",
+                textColor: "#f0e6f0",
+                textGlow: "#ff6aff",
+                buttonBg: "#3a2a4a",
+                buttonBgHover: "#4a3a6a",
+                inputBg: "#3a2a4a"
+            },
+            "Infected": {
+                menuBg: "rgba(22, 18, 10, 0.95)",
+                lbBg: "rgba(22, 18, 10, 0.97)",
+                boxBg: "#2e2410",
+                accentColor: "#ff8c00",
+                accentGlow: "rgba(255, 140, 0, 0.4)",
+                textColor: "#ffe6cc",
+                textGlow: "#ff8c00",
+                buttonBg: "#3d3020",
+                buttonBgHover: "#4d4030",
+                inputBg: "#3d3020"
+            },
+            "Lifeblood": {
+                menuBg: "rgba(10, 18, 22, 0.95)",
+                lbBg: "rgba(10, 18, 22, 0.97)",
+                boxBg: "#1a2428",
+                accentColor: "#00d4ff",
+                accentGlow: "rgba(0, 212, 255, 0.4)",
+                textColor: "#e6f9ff",
+                textGlow: "#00d4ff",
+                buttonBg: "#1a3540",
+                buttonBgHover: "#2a4550",
+                inputBg: "#1a3540"
+            },
+            "SteelSoul": {
+                menuBg: "rgba(15, 18, 20, 0.95)",
+                lbBg: "rgba(15, 18, 20, 0.97)",
+                boxBg: "#1a2025",
+                accentColor: "#7090a0",
+                accentGlow: "rgba(112, 144, 160, 0.4)",
+                textColor: "#e0e8f0",
+                textGlow: "#7090a0",
+                buttonBg: "#2a3540",
+                buttonBgHover: "#3a4550",
+                inputBg: "#2a3540"
+            },
+            "The Grimm Troupe": {
+                menuBg: "rgba(18, 8, 8, 0.95)",
+                lbBg: "rgba(18, 8, 8, 0.97)",
+                boxBg: "#220a0a",
+                accentColor: "#ff3333",
+                accentGlow: "rgba(255, 51, 51, 0.4)",
+                textColor: "#ffe6e6",
+                textGlow: "#ff3333",
+                buttonBg: "#3a1a1a",
+                buttonBgHover: "#4a2a2a",
+                inputBg: "#3a1a1a"
+            },
+            "Void": {
+                menuBg: "rgba(8, 8, 12, 0.95)",
+                lbBg: "rgba(8, 8, 12, 0.97)",
+                boxBg: "#0f0f15",
+                accentColor: "#4a4aaa",
+                accentGlow: "rgba(74, 74, 170, 0.4)",
+                textColor: "#d0d0e0",
+                textGlow: "#4a4aaa",
+                buttonBg: "#1a1a3a",
+                buttonBgHover: "#2a2a4a",
+                inputBg: "#1a1a3a"
+            },
+            "Voidheart": {
+                menuBg: "rgba(12, 8, 15, 0.95)",
+                lbBg: "rgba(12, 8, 15, 0.97)",
+                boxBg: "#18101e",
+                accentColor: "#9a6aff",
+                accentGlow: "rgba(154, 106, 255, 0.4)",
+                textColor: "#e6d9f0",
+                textGlow: "#9a6aff",
+                buttonBg: "#2a1a3a",
+                buttonBgHover: "#3a2a4a",
+                inputBg: "#2a1a3a"
+            },
+            "Zote": {
+                menuBg: "rgba(18, 15, 20, 0.95)",
+                lbBg: "rgba(18, 15, 20, 0.97)",
+                boxBg: "#252028",
+                accentColor: "#aa88cc",
+                accentGlow: "rgba(170, 136, 204, 0.4)",
+                textColor: "#e8e4ec",
+                textGlow: "#aa88cc",
+                buttonBg: "#352a40",
+                buttonBgHover: "#453a50",
+                inputBg: "#352a40"
+            }
+        };
+    }
+
+    applyTheme(backgroundName) {
+        // Extract theme name from path (e.g., "backgrounds/Classic.mp4" -> "Classic")
+        const themeName = backgroundName.split("/").pop().replace(".mp4", "");
+        const theme = this.themes[themeName] || this.themes["Classic"];
+
+        // Apply CSS custom properties
+        const root = document.documentElement;
+        root.style.setProperty("--menu-bg", theme.menuBg);
+        root.style.setProperty("--lb-bg", theme.lbBg);
+        root.style.setProperty("--box-bg", theme.boxBg);
+        root.style.setProperty("--accent-color", theme.accentColor);
+        root.style.setProperty("--accent-glow", theme.accentGlow);
+        root.style.setProperty("--text-color", theme.textColor);
+        root.style.setProperty("--text-glow", theme.textGlow);
+        root.style.setProperty("--button-bg", theme.buttonBg);
+        root.style.setProperty("--button-bg-hover", theme.buttonBgHover);
+        root.style.setProperty("--input-bg", theme.inputBg);
+    }
+}
+
+// ===============================
 // Sound Manager
 // ===============================
 class SoundManager {
@@ -122,7 +271,7 @@ class UI {
         this.timerDifficultyDiv = document.getElementById("timerDifficulty");
     }
 
-    setBackground(src) {
+    setBackground(src, themeManager) {
         const bgVideo = document.getElementById("bgVideo");
         if (bgVideo && src) {
             bgVideo.src = src;
@@ -135,6 +284,11 @@ class UI {
                 };
                 document.addEventListener("click", playOnInteract);
             });
+            
+            // Apply matching theme
+            if (themeManager) {
+                themeManager.applyTheme(src);
+            }
         }
     }
 
@@ -230,6 +384,7 @@ class Game {
         };
 
         this.ui = new UI();
+        this.themeManager = new ThemeManager();
         this.timer = new Timer(document.getElementById("timerDisplay"));
         this.timer.onTimeout = () => this.handleTimeout();
         this.soundManager = new SoundManager(document.getElementById("volumeSlider"));
@@ -267,7 +422,7 @@ class Game {
 
         // Background change
         this.ui.backgroundSelect.addEventListener("change", e => {
-            this.ui.setBackground(e.target.value);
+            this.ui.setBackground(e.target.value, this.themeManager);
         });
 
         // Search toggle
@@ -628,7 +783,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Force Classic background on startup
-    game.ui.setBackground("backgrounds/Classic.mp4");
+    game.ui.setBackground("backgrounds/Classic.mp4", game.themeManager);
 
     // Set initial background volume
     const bgVideo = document.getElementById("bgVideo");
