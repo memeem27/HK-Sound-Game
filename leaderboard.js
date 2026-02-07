@@ -14,6 +14,9 @@ import { db } from "./firebase.js";
 let lastSubmitTime = 0;
 const SUBMIT_COOLDOWN = 10000; // 10 seconds
 
+// Loading state
+let isLeaderboardLoaded = false;
+
 // Username sanitization
 function sanitizeUsername(username) {
     if (!username || typeof username !== 'string') {
@@ -67,6 +70,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const lbList = document.getElementById("lbList");
     const submitScoreBtn = document.getElementById("submitScoreBtn");
 
+    // Disable submit button initially
+    submitScoreBtn.disabled = true;
+    submitScoreBtn.textContent = "Loading...";
+
     // Trophy display
     const trophyCase = document.getElementById("trophyCase");
 
@@ -81,6 +88,12 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     submitScoreBtn.addEventListener("click", async () => {
+        // Check if leaderboard has loaded
+        if (!isLeaderboardLoaded) {
+            alert("Please wait for the leaderboard to finish loading.");
+            return;
+        }
+
         // Rate limiting check
         const now = Date.now();
         if (now - lastSubmitTime < SUBMIT_COOLDOWN) {
@@ -97,6 +110,12 @@ document.addEventListener("DOMContentLoaded", () => {
         const medium = validateNumber(window.gameStats?.mediumModeWins || 0);
         const hard = validateNumber(window.gameStats?.hardModeWins || 0);
         
+        // Additional validation - prevent submitting all zeros
+        if (wins === 0 && streak === 0 && easy === 0 && medium === 0 && hard === 0 && (fastest === 0 || fastest === Infinity)) {
+            alert("No valid stats to submit. Play some games first!");
+            return;
+        }
+
         // Additional validation
         if (wins < 0 || streak < 0 || fastest < 0) {
             alert("Invalid stats detected. Please play the game normally.");
@@ -163,43 +182,92 @@ document.addEventListener("DOMContentLoaded", () => {
                 li.className = "lb-empty";
                 li.textContent = "No entries yet";
                 lbList.appendChild(li);
-                return;
-            }
-            
-            let rank = 1;
-            snapshot.forEach(doc => {
-                const data = doc.data();
-                const li = document.createElement("li");
+            } else {
+                // Use a Map to track best entry per username
+                const bestEntries = new Map();
                 
-                let displayValue = data[mode];
-                
-                // Skip entries with 0 or invalid values for mode-specific leaderboards
-                if ((mode === "easy" || mode === "medium" || mode === "hard") && (!displayValue || displayValue === 0)) {
-                    return;
-                }
-                
-                // Format fastest time nicely
-                if (mode === "fastest") {
-                    if (!displayValue || displayValue === 999999 || displayValue === Infinity) {
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const displayValue = data[mode];
+                    
+                    // Skip entries with 0 or invalid values for mode-specific leaderboards
+                    if ((mode === "easy" || mode === "medium" || mode === "hard") && (!displayValue || displayValue === 0)) {
                         return;
                     }
-                    displayValue = displayValue.toFixed(1) + "s";
+                    
+                    // Skip invalid fastest times
+                    if (mode === "fastest" && (!displayValue || displayValue === 999999 || displayValue === Infinity)) {
+                        return;
+                    }
+                    
+                    const displayUsername = sanitizeUsername(data.username || "Unknown");
+                    
+                    // Check if we already have an entry for this username
+                    if (bestEntries.has(displayUsername)) {
+                        const existing = bestEntries.get(displayUsername);
+                        
+                        // Compare and keep the better score
+                        let shouldReplace = false;
+                        if (mode === "fastest") {
+                            // For fastest time, lower is better
+                            shouldReplace = displayValue < existing.value;
+                        } else {
+                            // For all other modes, higher is better
+                            shouldReplace = displayValue > existing.value;
+                        }
+                        
+                        if (shouldReplace) {
+                            bestEntries.set(displayUsername, {
+                                value: displayValue,
+                                username: displayUsername
+                            });
+                        }
+                    } else {
+                        // First entry for this username
+                        bestEntries.set(displayUsername, {
+                            value: displayValue,
+                            username: displayUsername
+                        });
+                    }
+                });
+                
+                // Convert map to sorted array
+                const sortedEntries = Array.from(bestEntries.values()).sort((a, b) => {
+                    if (mode === "fastest") {
+                        return a.value - b.value; // Lower is better
+                    } else {
+                        return b.value - a.value; // Higher is better
+                    }
+                });
+                
+                // Display sorted entries
+                if (sortedEntries.length === 0) {
+                    const li = document.createElement("li");
+                    li.className = "lb-empty";
+                    li.textContent = "No entries yet for this mode";
+                    lbList.appendChild(li);
+                } else {
+                    let rank = 1;
+                    sortedEntries.forEach(entry => {
+                        const li = document.createElement("li");
+                        
+                        let displayValue = entry.value;
+                        if (mode === "fastest") {
+                            displayValue = displayValue.toFixed(1) + "s";
+                        }
+                        
+                        li.textContent = `#${rank} ${entry.username} — ${displayValue}`;
+                        lbList.appendChild(li);
+                        rank++;
+                    });
                 }
-                
-                // Sanitize username for display
-                const displayUsername = sanitizeUsername(data.username || "Unknown");
-                
-                li.textContent = `#${rank} ${displayUsername} — ${displayValue}`;
-                lbList.appendChild(li);
-                rank++;
-            });
+            }
             
-            // If no valid entries were added
-            if (lbList.children.length === 0) {
-                const li = document.createElement("li");
-                li.className = "lb-empty";
-                li.textContent = "No entries yet for this mode";
-                lbList.appendChild(li);
+            // Mark leaderboard as loaded and enable submit button
+            if (!isLeaderboardLoaded) {
+                isLeaderboardLoaded = true;
+                submitScoreBtn.disabled = false;
+                submitScoreBtn.textContent = "Submit Current Stats";
             }
         } catch (error) {
             lbList.innerHTML = "";
@@ -207,6 +275,13 @@ document.addEventListener("DOMContentLoaded", () => {
             li.className = "lb-empty";
             li.textContent = "Error loading leaderboard";
             lbList.appendChild(li);
+            
+            // Still enable submit button even on error
+            if (!isLeaderboardLoaded) {
+                isLeaderboardLoaded = true;
+                submitScoreBtn.disabled = false;
+                submitScoreBtn.textContent = "Submit Current Stats";
+            }
         }
     }
 
@@ -224,8 +299,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 const snapshot = await getDocs(q);
                 
                 if (!snapshot.empty) {
-                    // Filter out invalid entries
-                    const validDocs = [];
+                    // Use same deduplication logic as leaderboard display
+                    const bestEntries = new Map();
+                    
                     snapshot.forEach(doc => {
                         const data = doc.data();
                         const value = data[category];
@@ -238,11 +314,44 @@ document.addEventListener("DOMContentLoaded", () => {
                             return;
                         }
                         
-                        validDocs.push(doc);
+                        const displayUsername = sanitizeUsername(data.username || "Unknown");
+                        
+                        // Check if we already have an entry for this username
+                        if (bestEntries.has(displayUsername)) {
+                            const existing = bestEntries.get(displayUsername);
+                            
+                            // Compare and keep the better score
+                            let shouldReplace = false;
+                            if (category === "fastest") {
+                                shouldReplace = value < existing.value;
+                            } else {
+                                shouldReplace = value > existing.value;
+                            }
+                            
+                            if (shouldReplace) {
+                                bestEntries.set(displayUsername, {
+                                    value: value,
+                                    username: displayUsername
+                                });
+                            }
+                        } else {
+                            bestEntries.set(displayUsername, {
+                                value: value,
+                                username: displayUsername
+                            });
+                        }
                     });
                     
-                    // Check if current user is #1
-                    if (validDocs.length > 0 && sanitizeUsername(validDocs[0].data().username) === currentUsername) {
+                    // Sort and check if current user is #1
+                    const sortedEntries = Array.from(bestEntries.values()).sort((a, b) => {
+                        if (category === "fastest") {
+                            return a.value - b.value;
+                        } else {
+                            return b.value - a.value;
+                        }
+                    });
+                    
+                    if (sortedEntries.length > 0 && sortedEntries[0].username === currentUsername) {
                         trophies.push({
                             category,
                             color: trophyColors[category]
@@ -318,6 +427,13 @@ document.addEventListener("DOMContentLoaded", () => {
             trophyCase.appendChild(trophyEl);
         });
     }
+
+    // Show loading message initially
+    lbList.innerHTML = "";
+    const loadingLi = document.createElement("li");
+    loadingLi.className = "lb-empty";
+    loadingLi.textContent = "Loading leaderboard...";
+    lbList.appendChild(loadingLi);
 
     lbSelect.addEventListener("change", loadLeaderboard);
     loadLeaderboard();

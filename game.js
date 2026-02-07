@@ -374,16 +374,8 @@ class Game {
         this.currentSound = null;
         this.correctName = null;
 
-        this.stats = {
-            wins: 0,
-            losses: 0,
-            bestStreak: 0,
-            fastestTime: Infinity,
-            roundsCompleted: 0,
-            easyModeWins: 0,
-            mediumModeWins: 0,
-            hardModeWins: 0
-        };
+        // Load stats from localStorage or use defaults
+        this.stats = this.loadStats();
 
         this.settings = {
             searchMode: false,
@@ -421,6 +413,47 @@ class Game {
                 this.hideScoreModal();
                 this.newRound();
             });
+        }
+    }
+
+    loadStats() {
+        try {
+            const saved = localStorage.getItem("hk-sound-game-stats");
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                return {
+                    wins: parsed.wins || 0,
+                    losses: parsed.losses || 0,
+                    bestStreak: parsed.bestStreak || 0,
+                    fastestTime: parsed.fastestTime || Infinity,
+                    roundsCompleted: parsed.roundsCompleted || 0,
+                    easyModeWins: parsed.easyModeWins || 0,
+                    mediumModeWins: parsed.mediumModeWins || 0,
+                    hardModeWins: parsed.hardModeWins || 0
+                };
+            }
+        } catch (e) {
+            console.error("Failed to load stats from localStorage", e);
+        }
+        
+        // Return default stats
+        return {
+            wins: 0,
+            losses: 0,
+            bestStreak: 0,
+            fastestTime: Infinity,
+            roundsCompleted: 0,
+            easyModeWins: 0,
+            mediumModeWins: 0,
+            hardModeWins: 0
+        };
+    }
+
+    saveStats() {
+        try {
+            localStorage.setItem("hk-sound-game-stats", JSON.stringify(this.stats));
+        } catch (e) {
+            console.error("Failed to save stats to localStorage", e);
         }
     }
 
@@ -559,6 +592,7 @@ class Game {
 
     newRound() {
         this.stats.roundsCompleted++;
+        this.saveStats();
 
         if (this.ui.searchInput) {
             this.ui.searchInput.value = "";
@@ -720,11 +754,15 @@ class Game {
             }
             result.textContent = "Correct!";
             result.style.color = "lightgreen";
+            
+            this.saveStats();
         } else {
             this.stats.losses++;
             this.stats.bestStreak = 0;
             result.textContent = "Wrong! It was: " + this.correctName;
             result.style.color = "salmon";
+            
+            this.saveStats();
 
             if (this.settings.timerEnabled) {
                 this.showScoreModal("Incorrect!");
