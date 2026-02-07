@@ -10,6 +10,26 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { db } from "./firebase.js";
 
+// Rate limiting
+let lastSubmitTime = 0;
+const SUBMIT_COOLDOWN = 10000; // 10 seconds
+
+// Username sanitization
+function sanitizeUsername(username) {
+    if (!username || typeof username !== 'string') {
+        return 'Unknown_Player_' + Math.floor(Math.random() * 1000);
+    }
+    // Remove special characters, keep only alphanumeric and underscore
+    return username.replace(/[^a-zA-Z0-9_]/g, '').substring(0, 50);
+}
+
+// Validate numeric stat
+function validateNumber(value, min = 0, max = 999999) {
+    const num = Number(value);
+    if (isNaN(num)) return min;
+    return Math.max(min, Math.min(max, num));
+}
+
 document.addEventListener("DOMContentLoaded", () => {
     // Username generator
     function generateUsername() {
@@ -36,6 +56,11 @@ document.addEventListener("DOMContentLoaded", () => {
         username = generateUsername();
         localStorage.setItem("hk-username", username);
     }
+    
+    // Sanitize existing username
+    username = sanitizeUsername(username);
+    localStorage.setItem("hk-username", username);
+    
     document.getElementById("lbUsername").textContent = "User: " + username;
 
     const lbSelect = document.getElementById("lbSelect");
@@ -56,23 +81,36 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     submitScoreBtn.addEventListener("click", async () => {
-        const wins = Number(document.getElementById("wins").textContent);
-        const fastest = Number(document.getElementById("fastestTime").textContent);
-        const streak = Number(document.getElementById("streak").textContent);
+        // Rate limiting check
+        const now = Date.now();
+        if (now - lastSubmitTime < SUBMIT_COOLDOWN) {
+            const waitTime = Math.ceil((SUBMIT_COOLDOWN - (now - lastSubmitTime)) / 1000);
+            alert(`Please wait ${waitTime} seconds before submitting again.`);
+            return;
+        }
+
+        // Get and validate stats
+        const wins = validateNumber(document.getElementById("wins").textContent);
+        const fastest = validateNumber(document.getElementById("fastestTime").textContent, 0, 999999);
+        const streak = validateNumber(document.getElementById("streak").textContent);
+        const easy = validateNumber(window.gameStats?.easyModeWins || 0);
+        const medium = validateNumber(window.gameStats?.mediumModeWins || 0);
+        const hard = validateNumber(window.gameStats?.hardModeWins || 0);
         
-        // Get mode-specific wins from game stats
-        const easy = Number(window.gameStats?.easyModeWins || 0);
-        const medium = Number(window.gameStats?.mediumModeWins || 0);
-        const hard = Number(window.gameStats?.hardModeWins || 0);
-        
+        // Additional validation
+        if (wins < 0 || streak < 0 || fastest < 0) {
+            alert("Invalid stats detected. Please play the game normally.");
+            return;
+        }
+
         const data = {
-            username,
-            wins,
+            username: sanitizeUsername(username),
+            wins: wins,
             fastest: fastest === Infinity ? 999999 : fastest,
-            streak,
-            easy,
-            medium,
-            hard,
+            streak: streak,
+            easy: easy,
+            medium: medium,
+            hard: hard,
             timestamp: Date.now()
         };
 
@@ -80,7 +118,7 @@ document.addEventListener("DOMContentLoaded", () => {
             // Check if user already has an entry
             const q = query(
                 collection(db, "leaderboard"),
-                where("username", "==", username)
+                where("username", "==", data.username)
             );
             const snapshot = await getDocs(q);
 
@@ -95,11 +133,17 @@ document.addEventListener("DOMContentLoaded", () => {
                 alert("Stats submitted to leaderboard!");
             }
             
+            // Update last submit time only on success
+            lastSubmitTime = now;
+            
             await loadLeaderboard();
-            await updateTrophies(); // Check for trophies after submission
+            await updateTrophies();
         } catch (error) {
-            console.error("Error submitting stats:", error);
-            alert("Error submitting stats. Check console for details.");
+            if (error.code === 'permission-denied') {
+                alert("Permission denied. Please ensure App Check is working properly.");
+            } else {
+                alert("Error submitting stats. Please try again later.");
+            }
         }
     });
 
@@ -131,18 +175,21 @@ document.addEventListener("DOMContentLoaded", () => {
                 
                 // Skip entries with 0 or invalid values for mode-specific leaderboards
                 if ((mode === "easy" || mode === "medium" || mode === "hard") && (!displayValue || displayValue === 0)) {
-                    return; // Skip this entry
+                    return;
                 }
                 
                 // Format fastest time nicely
                 if (mode === "fastest") {
                     if (!displayValue || displayValue === 999999 || displayValue === Infinity) {
-                        return; // Skip entries with no time set
+                        return;
                     }
                     displayValue = displayValue.toFixed(1) + "s";
                 }
                 
-                li.textContent = `#${rank} ${data.username} — ${displayValue}`;
+                // Sanitize username for display
+                const displayUsername = sanitizeUsername(data.username || "Unknown");
+                
+                li.textContent = `#${rank} ${displayUsername} — ${displayValue}`;
                 lbList.appendChild(li);
                 rank++;
             });
@@ -155,7 +202,6 @@ document.addEventListener("DOMContentLoaded", () => {
                 lbList.appendChild(li);
             }
         } catch (error) {
-            console.error("Error loading leaderboard:", error);
             lbList.innerHTML = "";
             const li = document.createElement("li");
             li.className = "lb-empty";
@@ -165,7 +211,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function updateTrophies() {
-        const currentUsername = localStorage.getItem("hk-username");
+        const currentUsername = sanitizeUsername(localStorage.getItem("hk-username"));
         const trophies = [];
 
         // Check each category
@@ -196,7 +242,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     
                     // Check if current user is #1
-                    if (validDocs.length > 0 && validDocs[0].data().username === currentUsername) {
+                    if (validDocs.length > 0 && sanitizeUsername(validDocs[0].data().username) === currentUsername) {
                         trophies.push({
                             category,
                             color: trophyColors[category]
@@ -204,7 +250,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             } catch (error) {
-                console.error(`Error checking ${category} leaderboard:`, error);
+                // Silently fail for trophy checking
             }
         }
 
@@ -216,7 +262,7 @@ document.addEventListener("DOMContentLoaded", () => {
         trophyCase.innerHTML = "";
         
         if (trophies.length === 0) {
-            return; // No trophies to display
+            return;
         }
 
         trophies.forEach(trophy => {
@@ -239,15 +285,16 @@ document.addEventListener("DOMContentLoaded", () => {
             const color = trophy.color;
             const brightColor = adjustBrightness(color, 30);
             const darkColor = adjustBrightness(color, -40);
+            const safeColorId = color.replace('#', '');
             
             trophyEl.innerHTML = `
                 <defs>
-                    <radialGradient id="grad6-${color.replace('#', '')}">
+                    <radialGradient id="grad6-${safeColorId}">
                         <stop offset="0%" style="stop-color:${brightColor};stop-opacity:1" />
                         <stop offset="70%" style="stop-color:${color};stop-opacity:1" />
                         <stop offset="100%" style="stop-color:${darkColor};stop-opacity:1" />
                     </radialGradient>
-                    <filter id="glow6-${color.replace('#', '')}">
+                    <filter id="glow6-${safeColorId}">
                         <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                         <feMerge>
                             <feMergeNode in="coloredBlur"/>
@@ -255,8 +302,8 @@ document.addEventListener("DOMContentLoaded", () => {
                         </feMerge>
                     </filter>
                 </defs>
-                <circle cx="30" cy="30" r="18" fill="url(#grad6-${color.replace('#', '')})" 
-                    stroke="#1a1a2a" stroke-width="2" filter="url(#glow6-${color.replace('#', '')})"/>
+                <circle cx="30" cy="30" r="18" fill="url(#grad6-${safeColorId})" 
+                    stroke="#1a1a2a" stroke-width="2" filter="url(#glow6-${safeColorId})"/>
                 <circle cx="30" cy="30" r="13" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
                 <circle cx="30" cy="30" r="8" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
                 <text x="30" y="36" text-anchor="middle" font-size="16" font-weight="bold" fill="#1a1a2a">★</text>
@@ -274,5 +321,5 @@ document.addEventListener("DOMContentLoaded", () => {
 
     lbSelect.addEventListener("change", loadLeaderboard);
     loadLeaderboard();
-    updateTrophies(); // Check trophies on page load
+    updateTrophies();
 });

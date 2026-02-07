@@ -2,6 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" 
+          content="default-src 'self'; 
+                   script-src 'self' https://www.gstatic.com https://www.google.com; 
+                   style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; 
+                   font-src https://fonts.gstatic.com; 
+                   connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com; 
+                   media-src 'self'; 
+                   img-src 'self' data:;">
     <title>HK Sound Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -64,7 +72,7 @@
             <option value="backgrounds/Zote.mp4" id="zoteOption" disabled>Zote</option>
         </select>
 
-        <label>Background Volume</label>
+        <label>Background Volume <span id="volumePercent">(35%)</span></label>
         <input type="range" id="volumeSlider" min="0" max="100" value="35">
 
         <label>Number of Options</label>
@@ -74,9 +82,13 @@
 
         <h2>Timer Mode</h2>
         <label><input type="radio" name="timerMode" value="off" checked> Off</label>
-        <label><input type="radio" name="timerMode" value="easy"> Easy (45s)</label>
-        <label><input type="radio" name="timerMode" value="medium"> Medium (30s)</label>
-        <label><input type="radio" name="timerMode" value="hard"> Hard (15s)</label>
+        <label><input type="radio" name="timerMode" value="on"> On</label>
+
+        <div id="timerDifficulty" style="display: none; margin-top: 10px;">
+            <label><input type="radio" name="timerDifficulty" value="easy" checked> Easy (45s)</label>
+            <label><input type="radio" name="timerDifficulty" value="medium"> Medium (30s)</label>
+            <label><input type="radio" name="timerDifficulty" value="hard"> Hard (15s)</label>
+        </div>
     </div>
 
     <!-- Buttons -->
@@ -117,6 +129,7 @@
     </div>
 
     <!-- Scripts -->
+    <script type="module" src="appcheck.js"></script>
     <script type="module" src="firebase.js"></script>
     <script type="module" src="leaderboard.js"></script>
     <script src="game.js"></script>

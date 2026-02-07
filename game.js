@@ -1,6 +1,5 @@
 // ===============================
 // Hollow Knight Sound Guessing Game
-// Fixed search mode functionality
 // ===============================
 
 // Utility: Format filenames → Display names
@@ -13,22 +12,180 @@ function formatName(filename) {
 }
 
 // ===============================
+// Theme Manager
+// ===============================
+class ThemeManager {
+    constructor() {
+        this.themes = {
+            "Classic": {
+                menuBg: "rgba(13, 13, 22, 0.95)",
+                lbBg: "rgba(13, 13, 22, 0.97)",
+                boxBg: "#1a1a2e",
+                accentColor: "#6a6aff",
+                accentGlow: "rgba(120, 120, 255, 0.4)",
+                textColor: "#e6e6f0",
+                textGlow: "#6a6aff",
+                buttonBg: "#2a2a4a",
+                buttonBgHover: "#3a3a6a",
+                inputBg: "#2a2a4a"
+            },
+            "Godhome": {
+                menuBg: "rgba(25, 22, 15, 0.95)",
+                lbBg: "rgba(25, 22, 15, 0.97)",
+                boxBg: "#2e2a1a",
+                accentColor: "#ffd700",
+                accentGlow: "rgba(255, 215, 0, 0.4)",
+                textColor: "#fff8dc",
+                textGlow: "#ffd700",
+                buttonBg: "#3d3520",
+                buttonBgHover: "#4d4530",
+                inputBg: "#3d3520"
+            },
+            "Hidden Dreams": {
+                menuBg: "rgba(20, 13, 22, 0.95)",
+                lbBg: "rgba(20, 13, 22, 0.97)",
+                boxBg: "#2a1a2e",
+                accentColor: "#ff6aff",
+                accentGlow: "rgba(255, 106, 255, 0.4)",
+                textColor: "#f0e6f0",
+                textGlow: "#ff6aff",
+                buttonBg: "#3a2a4a",
+                buttonBgHover: "#4a3a6a",
+                inputBg: "#3a2a4a"
+            },
+            "Infected": {
+                menuBg: "rgba(22, 18, 10, 0.95)",
+                lbBg: "rgba(22, 18, 10, 0.97)",
+                boxBg: "#2e2410",
+                accentColor: "#ff8c00",
+                accentGlow: "rgba(255, 140, 0, 0.4)",
+                textColor: "#ffe6cc",
+                textGlow: "#ff8c00",
+                buttonBg: "#3d3020",
+                buttonBgHover: "#4d4030",
+                inputBg: "#3d3020"
+            },
+            "Lifeblood": {
+                menuBg: "rgba(10, 18, 22, 0.95)",
+                lbBg: "rgba(10, 18, 22, 0.97)",
+                boxBg: "#1a2428",
+                accentColor: "#00d4ff",
+                accentGlow: "rgba(0, 212, 255, 0.4)",
+                textColor: "#e6f9ff",
+                textGlow: "#00d4ff",
+                buttonBg: "#1a3540",
+                buttonBgHover: "#2a4550",
+                inputBg: "#1a3540"
+            },
+            "SteelSoul": {
+                menuBg: "rgba(15, 18, 20, 0.95)",
+                lbBg: "rgba(15, 18, 20, 0.97)",
+                boxBg: "#1a2025",
+                accentColor: "#7090a0",
+                accentGlow: "rgba(112, 144, 160, 0.4)",
+                textColor: "#e0e8f0",
+                textGlow: "#7090a0",
+                buttonBg: "#2a3540",
+                buttonBgHover: "#3a4550",
+                inputBg: "#2a3540"
+            },
+            "The Grimm Troupe": {
+                menuBg: "rgba(18, 8, 8, 0.95)",
+                lbBg: "rgba(18, 8, 8, 0.97)",
+                boxBg: "#220a0a",
+                accentColor: "#ff3333",
+                accentGlow: "rgba(255, 51, 51, 0.4)",
+                textColor: "#ffe6e6",
+                textGlow: "#ff3333",
+                buttonBg: "#3a1a1a",
+                buttonBgHover: "#4a2a2a",
+                inputBg: "#3a1a1a"
+            },
+            "Void": {
+                menuBg: "rgba(8, 8, 12, 0.95)",
+                lbBg: "rgba(8, 8, 12, 0.97)",
+                boxBg: "#0f0f15",
+                accentColor: "#4a4aaa",
+                accentGlow: "rgba(74, 74, 170, 0.4)",
+                textColor: "#d0d0e0",
+                textGlow: "#4a4aaa",
+                buttonBg: "#1a1a3a",
+                buttonBgHover: "#2a2a4a",
+                inputBg: "#1a1a3a"
+            },
+            "Voidheart": {
+                menuBg: "rgba(12, 8, 15, 0.95)",
+                lbBg: "rgba(12, 8, 15, 0.97)",
+                boxBg: "#18101e",
+                accentColor: "#9a6aff",
+                accentGlow: "rgba(154, 106, 255, 0.4)",
+                textColor: "#e6d9f0",
+                textGlow: "#9a6aff",
+                buttonBg: "#2a1a3a",
+                buttonBgHover: "#3a2a4a",
+                inputBg: "#2a1a3a"
+            },
+            "Zote": {
+                menuBg: "rgba(18, 15, 20, 0.95)",
+                lbBg: "rgba(18, 15, 20, 0.97)",
+                boxBg: "#252028",
+                accentColor: "#aa88cc",
+                accentGlow: "rgba(170, 136, 204, 0.4)",
+                textColor: "#e8e4ec",
+                textGlow: "#aa88cc",
+                buttonBg: "#352a40",
+                buttonBgHover: "#453a50",
+                inputBg: "#352a40"
+            }
+        };
+    }
+
+    applyTheme(backgroundName) {
+        const themeName = backgroundName.split("/").pop().replace(".mp4", "");
+        const theme = this.themes[themeName] || this.themes["Classic"];
+
+        const root = document.documentElement;
+        root.style.setProperty("--menu-bg", theme.menuBg);
+        root.style.setProperty("--lb-bg", theme.lbBg);
+        root.style.setProperty("--box-bg", theme.boxBg);
+        root.style.setProperty("--accent-color", theme.accentColor);
+        root.style.setProperty("--accent-glow", theme.accentGlow);
+        root.style.setProperty("--text-color", theme.textColor);
+        root.style.setProperty("--text-glow", theme.textGlow);
+        root.style.setProperty("--button-bg", theme.buttonBg);
+        root.style.setProperty("--button-bg-hover", theme.buttonBgHover);
+        root.style.setProperty("--input-bg", theme.inputBg);
+    }
+}
+
+// ===============================
 // Sound Manager
 // ===============================
 class SoundManager {
-    constructor(volumeSlider) {
+    constructor(volumeSlider, volumePercent) {
         this.audio = new Audio();
         this.volumeSlider = volumeSlider;
+        this.volumePercent = volumePercent;
         this.audio.volume = volumeSlider.value / 100;
 
         volumeSlider.addEventListener("input", () => {
             this.audio.volume = volumeSlider.value / 100;
+            this.updateVolumeDisplay();
         });
+        
+        // Set initial display
+        this.updateVolumeDisplay();
+    }
+
+    updateVolumeDisplay() {
+        if (this.volumePercent) {
+            this.volumePercent.textContent = `(${this.volumeSlider.value}%)`;
+        }
     }
 
     play(filePath) {
         this.audio.src = filePath;
-        this.audio.play();
+        this.audio.play().catch(() => {});
     }
 }
 
@@ -45,15 +202,12 @@ class Timer {
     }
 
     start(durationSeconds) {
-        // reset any existing interval
         clearInterval(this.interval);
 
         if (typeof durationSeconds === "number" && durationSeconds > 0) {
-            // countdown mode
             this.duration = durationSeconds;
             this.time = durationSeconds;
         } else {
-            // simple stopwatch mode
             this.duration = null;
             this.time = 0;
         }
@@ -62,7 +216,6 @@ class Timer {
 
         this.interval = setInterval(() => {
             if (this.duration !== null) {
-                // countdown
                 this.time = Math.max(0, this.time - 0.1);
                 this.updateDisplay();
                 if (this.time <= 0) {
@@ -72,7 +225,6 @@ class Timer {
                     }
                 }
             } else {
-                // count up
                 this.time += 0.1;
                 this.updateDisplay();
             }
@@ -83,7 +235,6 @@ class Timer {
         clearInterval(this.interval);
         let elapsed;
         if (this.duration !== null) {
-            // duration - remaining
             elapsed = this.duration - this.time;
         } else {
             elapsed = this.time;
@@ -115,15 +266,27 @@ class UI {
         this.fastestDisplay = document.getElementById("fastestTime");
         this.backgroundSelect = document.getElementById("bgSelect");
         this.optionCount = document.getElementById("optionCount");
-        this.timerMode = document.getElementsByName("timerMode");
+        this.timerModeRadios = document.getElementsByName("timerMode");
+        this.timerDifficultyRadios = document.getElementsByName("timerDifficulty");
+        this.timerDifficultyDiv = document.getElementById("timerDifficulty");
+        this.volumePercent = document.getElementById("volumePercent");
     }
 
-    setBackground(src) {
+    async setBackground(src, themeManager) {
         const bgVideo = document.getElementById("bgVideo");
         if (bgVideo && src) {
+            bgVideo.style.opacity = "0";
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             bgVideo.src = src;
             bgVideo.volume = document.getElementById("volumeSlider").value / 100;
             bgVideo.load();
+            
+            if (themeManager) {
+                themeManager.applyTheme(src);
+            }
+            
             bgVideo.play().catch(() => {
                 const playOnInteract = () => {
                     bgVideo.play();
@@ -131,6 +294,14 @@ class UI {
                 };
                 document.addEventListener("click", playOnInteract);
             });
+            
+            bgVideo.style.opacity = "1";
+        }
+    }
+
+    updateVolumeDisplay(value) {
+        if (this.volumePercent) {
+            this.volumePercent.textContent = `(${value}%)`;
         }
     }
 
@@ -180,13 +351,9 @@ class UI {
             const li = document.createElement("li");
             li.textContent = name;
             li.addEventListener("click", () => {
-                // Update both the search input and set the selected answer
                 this.searchInput.value = name;
-                // Store the selected answer for submission
                 this.searchInput.dataset.selected = name;
-                // Clear the list after selection
                 this.searchList.innerHTML = "";
-                // Visual feedback
                 this.searchInput.style.background = "#2a4a2a";
                 setTimeout(() => {
                     this.searchInput.style.background = "";
@@ -221,13 +388,18 @@ class Game {
         this.settings = {
             searchMode: false,
             optionCount: 5,
-            timerMode: "off"
+            timerEnabled: false,
+            timerDifficulty: "easy"
         };
 
         this.ui = new UI();
+        this.themeManager = new ThemeManager();
         this.timer = new Timer(document.getElementById("timerDisplay"));
         this.timer.onTimeout = () => this.handleTimeout();
-        this.soundManager = new SoundManager(document.getElementById("volumeSlider"));
+        this.soundManager = new SoundManager(
+            document.getElementById("volumeSlider"),
+            document.getElementById("volumePercent")
+        );
 
         this.sessionStats = {
             streak: 0,
@@ -253,19 +425,16 @@ class Game {
     }
 
     bindUI() {
-        // Play sound
         document.getElementById("playBtn").addEventListener("click", () => {
             if (this.currentSound) {
                 this.soundManager.play(this.soundFolder + this.currentSound);
             }
         });
 
-        // Background change
         this.ui.backgroundSelect.addEventListener("change", e => {
-            this.ui.setBackground(e.target.value);
+            this.ui.setBackground(e.target.value, this.themeManager);
         });
 
-        // Search toggle
         const searchToggle = document.getElementById("searchToggle");
         searchToggle.addEventListener("click", () => {
             this.settings.searchMode = !this.settings.searchMode;
@@ -281,18 +450,13 @@ class Game {
             }
         });
 
-        // Search input - show all options when focused
         this.ui.searchInput.addEventListener("focus", () => {
-            // Show all available options when clicking into search
             const allOptions = this.soundFiles.map(f => formatName(f));
             this.ui.populateSearchList(allOptions);
         });
 
-        // Search input - filter as user types
         this.ui.searchInput.addEventListener("input", () => {
             const query = this.ui.searchInput.value.toLowerCase();
-            
-            // Clear selected answer when user starts typing again
             delete this.ui.searchInput.dataset.selected;
             
             const filtered = this.soundFiles
@@ -302,15 +466,12 @@ class Game {
             this.ui.populateSearchList(filtered);
         });
 
-        // Option count
         this.ui.optionCount.addEventListener("input", e => {
             const val = parseInt(e.target.value, 10);
             if (isNaN(val)) return;
 
-            // Enforce minimum of 5 options
             let clamped = Math.max(5, val);
 
-            // Optional: don't allow more than total sounds once loaded
             if (this.soundFiles.length > 0) {
                 clamped = Math.min(clamped, this.soundFiles.length);
             }
@@ -318,67 +479,96 @@ class Game {
             this.settings.optionCount = clamped;
             e.target.value = clamped;
 
-            // When the number of options changes, refresh the question
             if (this.soundFiles.length > 0) {
                 this.newRound();
             }
         });
 
-        // Timer mode
-        this.ui.timerMode.forEach(radio => {
+        this.ui.timerModeRadios.forEach(radio => {
             radio.addEventListener("change", e => {
-                this.settings.timerMode = e.target.value;
                 const timerDisplay = document.getElementById("timerDisplay");
-                timerDisplay.style.display =
-                    e.target.value === "off" ? "none" : "block";
-
-                // When a timer mode is selected, immediately start a new
-                // timed round (once sounds are loaded) so the countdown
-                // begins right away.
-                if (e.target.value !== "off" && this.soundFiles.length > 0) {
-                    this.newRound();
+                
+                if (e.target.value === "off") {
+                    this.settings.timerEnabled = false;
+                    this.ui.timerDifficultyDiv.style.display = "none";
+                    timerDisplay.style.display = "none";
+                } else if (e.target.value === "on") {
+                    this.settings.timerEnabled = true;
+                    this.ui.timerDifficultyDiv.style.display = "block";
+                    timerDisplay.style.display = "block";
+                    
+                    for (const diffRadio of this.ui.timerDifficultyRadios) {
+                        if (diffRadio.checked) {
+                            this.settings.timerDifficulty = diffRadio.value;
+                            break;
+                        }
+                    }
+                    
+                    if (this.soundFiles.length > 0) {
+                        this.newRound();
+                    }
                 }
             });
         });
 
-        // Menu toggle
+        this.ui.timerDifficultyRadios.forEach(radio => {
+            radio.addEventListener("change", e => {
+                if (this.settings.timerEnabled) {
+                    this.settings.timerDifficulty = e.target.value;
+                    
+                    if (this.soundFiles.length > 0) {
+                        this.newRound();
+                    }
+                }
+            });
+        });
+
         document.getElementById("menuBtn").addEventListener("click", () => {
             document.getElementById("menuPanel").classList.toggle("open");
         });
 
-        // Leaderboard toggle
         document.getElementById("leaderboardBtn").addEventListener("click", () => {
             document.getElementById("leaderboardPanel").classList.toggle("open");
         });
 
-        // Volume slider controls background video too
         const bgVideo = document.getElementById("bgVideo");
         const volumeSlider = document.getElementById("volumeSlider");
 
         volumeSlider.addEventListener("input", () => {
             bgVideo.volume = volumeSlider.value / 100;
+            this.ui.updateVolumeDisplay(volumeSlider.value);
         });
     }
 
     async loadSounds() {
-        const response = await fetch(this.soundFolder + "list.json");
-        this.soundFiles = await response.json();
-        this.ui.optionCount.max = this.soundFiles.length;
-        this.newRound();
+        try {
+            const response = await fetch(this.soundFolder + "list.json");
+            if (!response.ok) {
+                throw new Error("Failed to load sound list");
+            }
+            this.soundFiles = await response.json();
+            if (!Array.isArray(this.soundFiles) || this.soundFiles.length === 0) {
+                throw new Error("Invalid sound list");
+            }
+            this.ui.optionCount.max = this.soundFiles.length;
+            this.newRound();
+        } catch (error) {
+            alert("Error loading sounds. Please refresh the page.");
+        }
     }
 
     newRound() {
         this.stats.roundsCompleted++;
 
-        // Clear search input for new round
         if (this.ui.searchInput) {
             this.ui.searchInput.value = "";
             delete this.ui.searchInput.dataset.selected;
             this.ui.searchList.innerHTML = "";
         }
 
-        if (this.settings.timerMode !== "off") {
-            this.timer.start(this.getTimerDuration());
+        if (this.settings.timerEnabled) {
+            const duration = this.getTimerDuration();
+            this.timer.start(duration);
         }
 
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
@@ -389,7 +579,7 @@ class Game {
     }
 
     getTimerDuration() {
-        switch (this.settings.timerMode) {
+        switch (this.settings.timerDifficulty) {
             case "easy":
                 return 45;
             case "medium":
@@ -404,7 +594,6 @@ class Game {
     buildOptions(count) {
         this.ui.clearOptions();
 
-        // Add placeholder option so nothing is selected by default
         const placeholder = document.createElement("option");
         placeholder.value = "";
         placeholder.textContent = "Choose option";
@@ -433,7 +622,7 @@ class Game {
     }
 
     updateSessionStatsOnCorrect(time) {
-        if (this.settings.timerMode === "off") return;
+        if (!this.settings.timerEnabled) return;
         this.sessionStats.streak++;
         this.sessionStats.totalTime += time;
         this.sessionStats.rounds++;
@@ -451,9 +640,7 @@ class Game {
         const fastestText = fastest === Infinity ? "N/A" : fastest.toFixed(1) + "s";
         const avgText = avg === null ? "N/A" : avg.toFixed(1) + "s";
 
-        return `Streak this run: ${streak}
-Fastest time this run: ${fastestText}
-Average time this run: ${avgText}`;
+        return `Streak this run: ${streak}\nFastest time this run: ${fastestText}\nAverage time this run: ${avgText}`;
     }
 
     resetSessionStats() {
@@ -478,22 +665,19 @@ Average time this run: ${avgText}`;
     }
 
     handleTimeout() {
-        // Timer-mode-only loss that does not affect overall stats
-        if (this.settings.timerMode === "off") return;
+        if (!this.settings.timerEnabled) return;
         this.showScoreModal("Time's Up!");
     }
 
     handleGuess() {
         let guess;
         
-        // Get guess from search mode or dropdown
         if (this.settings.searchMode) {
             guess = this.ui.searchInput.dataset.selected;
         } else {
             guess = this.ui.optionContainer.value;
         }
 
-        // Require the player to choose an option
         if (!guess) {
             const result = document.getElementById("result");
             if (result) {
@@ -508,7 +692,7 @@ Average time this run: ${avgText}`;
         const correct = guess === this.correctName;
 
         let time = null;
-        if (this.settings.timerMode !== "off") {
+        if (this.settings.timerEnabled) {
             time = this.timer.stop();
             if (correct && time < this.stats.fastestTime) {
                 this.stats.fastestTime = time;
@@ -521,13 +705,14 @@ Average time this run: ${avgText}`;
             this.stats.wins++;
             this.stats.bestStreak++;
             
-            // Track mode-specific wins
-            if (this.settings.timerMode === "easy") {
-                this.stats.easyModeWins++;
-            } else if (this.settings.timerMode === "medium") {
-                this.stats.mediumModeWins++;
-            } else if (this.settings.timerMode === "hard") {
-                this.stats.hardModeWins++;
+            if (this.settings.timerEnabled) {
+                if (this.settings.timerDifficulty === "easy") {
+                    this.stats.easyModeWins++;
+                } else if (this.settings.timerDifficulty === "medium") {
+                    this.stats.mediumModeWins++;
+                } else if (this.settings.timerDifficulty === "hard") {
+                    this.stats.hardModeWins++;
+                }
             }
             
             if (time !== null) {
@@ -541,7 +726,7 @@ Average time this run: ${avgText}`;
             result.textContent = "Wrong! It was: " + this.correctName;
             result.style.color = "salmon";
 
-            if (this.settings.timerMode !== "off") {
+            if (this.settings.timerEnabled) {
                 this.showScoreModal("Incorrect!");
                 this.updateStatsUI();
                 return;
@@ -555,21 +740,20 @@ Average time this run: ${avgText}`;
 
 let game = null;
 
-// Leaderboard export
 window.gameStats = {
     get wins() { return game?.stats.wins ?? 0; },
     get fastestTime() { return game?.stats.fastestTime ?? Infinity; },
     get bestStreak() { return game?.stats.bestStreak ?? 0; },
-    get timerMode() { return game?.settings.timerMode ?? "off"; },
+    get timerMode() { 
+        if (!game?.settings.timerEnabled) return "off";
+        return game?.settings.timerDifficulty ?? "off";
+    },
     get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; },
     get easyModeWins() { return game?.stats.easyModeWins ?? 0; },
     get mediumModeWins() { return game?.stats.mediumModeWins ?? 0; },
     get hardModeWins() { return game?.stats.hardModeWins ?? 0; }
 };
 
-// ===============================
-// Initialize Game
-// ===============================
 document.addEventListener("DOMContentLoaded", () => {
     game = new Game();
     game.loadSounds();
@@ -578,15 +762,12 @@ document.addEventListener("DOMContentLoaded", () => {
         game.handleGuess();
     });
 
-    // Force Classic background on startup
-    game.ui.setBackground("backgrounds/Classic.mp4");
+    game.ui.setBackground("backgrounds/Classic.mp4", game.themeManager);
 
-    // Set initial background volume
     const bgVideo = document.getElementById("bgVideo");
     const volumeSlider = document.getElementById("volumeSlider");
     bgVideo.volume = volumeSlider.value / 100;
 
-    // Allow background audio after first click
     document.addEventListener("click", () => {
         bgVideo.muted = false;
         bgVideo.volume = volumeSlider.value / 100;
