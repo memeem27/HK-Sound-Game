@@ -48,6 +48,8 @@ class Timer {
         // reset any existing interval
         clearInterval(this.interval);
 
+        console.log("Timer starting with duration:", durationSeconds);
+
         if (typeof durationSeconds === "number" && durationSeconds > 0) {
             // countdown mode
             this.duration = durationSeconds;
@@ -115,7 +117,9 @@ class UI {
         this.fastestDisplay = document.getElementById("fastestTime");
         this.backgroundSelect = document.getElementById("bgSelect");
         this.optionCount = document.getElementById("optionCount");
-        this.timerMode = document.getElementsByName("timerMode");
+        this.timerModeRadios = document.getElementsByName("timerMode");
+        this.timerDifficultyRadios = document.getElementsByName("timerDifficulty");
+        this.timerDifficultyDiv = document.getElementById("timerDifficulty");
     }
 
     setBackground(src) {
@@ -221,7 +225,8 @@ class Game {
         this.settings = {
             searchMode: false,
             optionCount: 5,
-            timerMode: "off"
+            timerEnabled: false,
+            timerDifficulty: "easy"
         };
 
         this.ui = new UI();
@@ -324,19 +329,56 @@ class Game {
             }
         });
 
-        // Timer mode
-        this.ui.timerMode.forEach(radio => {
+        // Timer mode (On/Off) radio buttons
+        this.ui.timerModeRadios.forEach(radio => {
             radio.addEventListener("change", e => {
-                this.settings.timerMode = e.target.value;
+                console.log("Timer mode changed to:", e.target.value);
                 const timerDisplay = document.getElementById("timerDisplay");
-                timerDisplay.style.display =
-                    e.target.value === "off" ? "none" : "block";
+                
+                if (e.target.value === "off") {
+                    this.settings.timerEnabled = false;
+                    this.ui.timerDifficultyDiv.style.display = "none";
+                    timerDisplay.style.display = "none";
+                    console.log("Timer disabled");
+                } else if (e.target.value === "on") {
+                    this.settings.timerEnabled = true;
+                    this.ui.timerDifficultyDiv.style.display = "block";
+                    timerDisplay.style.display = "block";
+                    
+                    console.log("Timer enabled, showing difficulty options");
+                    console.log("Difficulty div element:", this.ui.timerDifficultyDiv);
+                    console.log("Difficulty div display:", this.ui.timerDifficultyDiv.style.display);
+                    
+                    // Get selected difficulty
+                    for (const diffRadio of this.ui.timerDifficultyRadios) {
+                        if (diffRadio.checked) {
+                            this.settings.timerDifficulty = diffRadio.value;
+                            console.log("Selected difficulty:", diffRadio.value);
+                            break;
+                        }
+                    }
+                    
+                    console.log("Timer settings:", this.settings);
+                    
+                    // Start new round with timer
+                    if (this.soundFiles.length > 0) {
+                        this.newRound();
+                    }
+                }
+            });
+        });
 
-                // When a timer mode is selected, immediately start a new
-                // timed round (once sounds are loaded) so the countdown
-                // begins right away.
-                if (e.target.value !== "off" && this.soundFiles.length > 0) {
-                    this.newRound();
+        // Timer difficulty change
+        this.ui.timerDifficultyRadios.forEach(radio => {
+            radio.addEventListener("change", e => {
+                console.log("Difficulty changed to:", e.target.value);
+                if (this.settings.timerEnabled) {
+                    this.settings.timerDifficulty = e.target.value;
+                    
+                    // Start new round with new difficulty
+                    if (this.soundFiles.length > 0) {
+                        this.newRound();
+                    }
                 }
             });
         });
@@ -377,8 +419,10 @@ class Game {
             this.ui.searchList.innerHTML = "";
         }
 
-        if (this.settings.timerMode !== "off") {
-            this.timer.start(this.getTimerDuration());
+        if (this.settings.timerEnabled) {
+            const duration = this.getTimerDuration();
+            console.log("Starting timer with difficulty:", this.settings.timerDifficulty, "duration:", duration);
+            this.timer.start(duration);
         }
 
         this.currentSound = this.soundFiles[Math.floor(Math.random() * this.soundFiles.length)];
@@ -389,7 +433,8 @@ class Game {
     }
 
     getTimerDuration() {
-        switch (this.settings.timerMode) {
+        console.log("Getting timer duration for difficulty:", this.settings.timerDifficulty);
+        switch (this.settings.timerDifficulty) {
             case "easy":
                 return 45;
             case "medium":
@@ -397,6 +442,7 @@ class Game {
             case "hard":
                 return 15;
             default:
+                console.warn("Unknown difficulty, defaulting to 0:", this.settings.timerDifficulty);
                 return 0;
         }
     }
@@ -433,7 +479,7 @@ class Game {
     }
 
     updateSessionStatsOnCorrect(time) {
-        if (this.settings.timerMode === "off") return;
+        if (!this.settings.timerEnabled) return;
         this.sessionStats.streak++;
         this.sessionStats.totalTime += time;
         this.sessionStats.rounds++;
@@ -451,9 +497,7 @@ class Game {
         const fastestText = fastest === Infinity ? "N/A" : fastest.toFixed(1) + "s";
         const avgText = avg === null ? "N/A" : avg.toFixed(1) + "s";
 
-        return `Streak this run: ${streak}
-Fastest time this run: ${fastestText}
-Average time this run: ${avgText}`;
+        return `Streak this run: ${streak}\nFastest time this run: ${fastestText}\nAverage time this run: ${avgText}`;
     }
 
     resetSessionStats() {
@@ -479,7 +523,7 @@ Average time this run: ${avgText}`;
 
     handleTimeout() {
         // Timer-mode-only loss that does not affect overall stats
-        if (this.settings.timerMode === "off") return;
+        if (!this.settings.timerEnabled) return;
         this.showScoreModal("Time's Up!");
     }
 
@@ -508,7 +552,7 @@ Average time this run: ${avgText}`;
         const correct = guess === this.correctName;
 
         let time = null;
-        if (this.settings.timerMode !== "off") {
+        if (this.settings.timerEnabled) {
             time = this.timer.stop();
             if (correct && time < this.stats.fastestTime) {
                 this.stats.fastestTime = time;
@@ -522,12 +566,14 @@ Average time this run: ${avgText}`;
             this.stats.bestStreak++;
             
             // Track mode-specific wins
-            if (this.settings.timerMode === "easy") {
-                this.stats.easyModeWins++;
-            } else if (this.settings.timerMode === "medium") {
-                this.stats.mediumModeWins++;
-            } else if (this.settings.timerMode === "hard") {
-                this.stats.hardModeWins++;
+            if (this.settings.timerEnabled) {
+                if (this.settings.timerDifficulty === "easy") {
+                    this.stats.easyModeWins++;
+                } else if (this.settings.timerDifficulty === "medium") {
+                    this.stats.mediumModeWins++;
+                } else if (this.settings.timerDifficulty === "hard") {
+                    this.stats.hardModeWins++;
+                }
             }
             
             if (time !== null) {
@@ -541,7 +587,7 @@ Average time this run: ${avgText}`;
             result.textContent = "Wrong! It was: " + this.correctName;
             result.style.color = "salmon";
 
-            if (this.settings.timerMode !== "off") {
+            if (this.settings.timerEnabled) {
                 this.showScoreModal("Incorrect!");
                 this.updateStatsUI();
                 return;
@@ -560,7 +606,10 @@ window.gameStats = {
     get wins() { return game?.stats.wins ?? 0; },
     get fastestTime() { return game?.stats.fastestTime ?? Infinity; },
     get bestStreak() { return game?.stats.bestStreak ?? 0; },
-    get timerMode() { return game?.settings.timerMode ?? "off"; },
+    get timerMode() { 
+        if (!game?.settings.timerEnabled) return "off";
+        return game?.settings.timerDifficulty ?? "off";
+    },
     get roundsCompleted() { return game?.stats.roundsCompleted ?? 0; },
     get easyModeWins() { return game?.stats.easyModeWins ?? 0; },
     get mediumModeWins() { return game?.stats.mediumModeWins ?? 0; },

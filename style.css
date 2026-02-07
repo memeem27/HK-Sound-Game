@@ -1,7 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&display=swap');
-#leaderboardPanel.open { 
-    left: 0
-}
+
 body {
     margin: 0;
     padding: 40px;
@@ -138,6 +136,7 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 20px;
     transition: 0.3s ease;
     z-index: 9;
+    overflow-y: auto;
 }
 
 #menuPanel.open {
@@ -146,6 +145,41 @@ input[type="range"]::-webkit-slider-thumb {
 
 #menuPanel.open ~ #menuBtn {
     right: 300px;
+}
+
+#menuPanel label {
+    color: #e6e6f0;
+    font-size: 14px;
+    display: block;
+    margin-top: 10px;
+}
+
+#timerDifficulty {
+    margin-top: 10px;
+}
+
+#timerDifficulty label {
+    display: block;
+    margin: 8px 0;
+    padding: 8px;
+    cursor: pointer;
+    background: rgba(40, 40, 70, 0.3);
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    color: #e6e6f0;
+    font-size: 14px;
+}
+
+#timerDifficulty label:hover {
+    background: rgba(50, 50, 90, 0.5);
+}
+
+#timerDifficulty input[type="radio"] {
+    margin-right: 8px;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
 }
 
 #leaderboardPanel {
@@ -164,6 +198,10 @@ input[type="range"]::-webkit-slider-thumb {
     flex-direction: column;
 }
 
+#leaderboardPanel.open {
+    left: 0;
+}
+
 #leaderboardPanel.open ~ #leaderboardBtn {
     left: 340px;
 }
@@ -177,6 +215,26 @@ input[type="range"]::-webkit-slider-thumb {
     overflow-y: auto;
     text-align: left;
     font-size: 14px;
+}
+
+#lbList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#lbList li {
+    padding: 8px 12px;
+    margin: 4px 0;
+    background: rgba(30, 30, 50, 0.5);
+    border-radius: 4px;
+    color: #e6e6f0;
+    font-size: 14px;
+    transition: background 0.2s ease;
+}
+
+#lbList li:hover {
+    background: rgba(50, 50, 80, 0.7);
 }
 
 .lb-empty {
