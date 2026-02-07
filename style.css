@@ -47,6 +47,7 @@ body {
     z-index: -1;
     opacity: 1;
     background: #0d0d16;
+    transition: opacity 1s ease;
 }
 
 #timerDisplay {

@@ -1,6 +1,5 @@
 // ===============================
 // Hollow Knight Sound Guessing Game
-// Fixed search mode functionality
 // ===============================
 
 // Utility: Format filenames → Display names
@@ -142,11 +141,9 @@ class ThemeManager {
     }
 
     applyTheme(backgroundName) {
-        // Extract theme name from path (e.g., "backgrounds/Classic.mp4" -> "Classic")
         const themeName = backgroundName.split("/").pop().replace(".mp4", "");
         const theme = this.themes[themeName] || this.themes["Classic"];
 
-        // Apply CSS custom properties
         const root = document.documentElement;
         root.style.setProperty("--menu-bg", theme.menuBg);
         root.style.setProperty("--lb-bg", theme.lbBg);
@@ -165,19 +162,30 @@ class ThemeManager {
 // Sound Manager
 // ===============================
 class SoundManager {
-    constructor(volumeSlider) {
+    constructor(volumeSlider, volumePercent) {
         this.audio = new Audio();
         this.volumeSlider = volumeSlider;
+        this.volumePercent = volumePercent;
         this.audio.volume = volumeSlider.value / 100;
 
         volumeSlider.addEventListener("input", () => {
             this.audio.volume = volumeSlider.value / 100;
+            this.updateVolumeDisplay();
         });
+        
+        // Set initial display
+        this.updateVolumeDisplay();
+    }
+
+    updateVolumeDisplay() {
+        if (this.volumePercent) {
+            this.volumePercent.textContent = `(${this.volumeSlider.value}%)`;
+        }
     }
 
     play(filePath) {
         this.audio.src = filePath;
-        this.audio.play();
+        this.audio.play().catch(() => {});
     }
 }
 
@@ -194,17 +202,12 @@ class Timer {
     }
 
     start(durationSeconds) {
-        // reset any existing interval
         clearInterval(this.interval);
 
-        console.log("Timer starting with duration:", durationSeconds);
-
         if (typeof durationSeconds === "number" && durationSeconds > 0) {
-            // countdown mode
             this.duration = durationSeconds;
             this.time = durationSeconds;
         } else {
-            // simple stopwatch mode
             this.duration = null;
             this.time = 0;
         }
@@ -213,7 +216,6 @@ class Timer {
 
         this.interval = setInterval(() => {
             if (this.duration !== null) {
-                // countdown
                 this.time = Math.max(0, this.time - 0.1);
                 this.updateDisplay();
                 if (this.time <= 0) {
@@ -223,7 +225,6 @@ class Timer {
                     }
                 }
             } else {
-                // count up
                 this.time += 0.1;
                 this.updateDisplay();
             }
@@ -234,7 +235,6 @@ class Timer {
         clearInterval(this.interval);
         let elapsed;
         if (this.duration !== null) {
-            // duration - remaining
             elapsed = this.duration - this.time;
         } else {
             elapsed = this.time;
@@ -269,14 +269,24 @@ class UI {
         this.timerModeRadios = document.getElementsByName("timerMode");
         this.timerDifficultyRadios = document.getElementsByName("timerDifficulty");
         this.timerDifficultyDiv = document.getElementById("timerDifficulty");
+        this.volumePercent = document.getElementById("volumePercent");
     }
 
-    setBackground(src, themeManager) {
+    async setBackground(src, themeManager) {
         const bgVideo = document.getElementById("bgVideo");
         if (bgVideo && src) {
+            bgVideo.style.opacity = "0";
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
             bgVideo.src = src;
             bgVideo.volume = document.getElementById("volumeSlider").value / 100;
             bgVideo.load();
+            
+            if (themeManager) {
+                themeManager.applyTheme(src);
+            }
+            
             bgVideo.play().catch(() => {
                 const playOnInteract = () => {
                     bgVideo.play();
@@ -285,10 +295,13 @@ class UI {
                 document.addEventListener("click", playOnInteract);
             });
             
-            // Apply matching theme
-            if (themeManager) {
-                themeManager.applyTheme(src);
-            }
+            bgVideo.style.opacity = "1";
+        }
+    }
+
+    updateVolumeDisplay(value) {
+        if (this.volumePercent) {
+            this.volumePercent.textContent = `(${value}%)`;
         }
     }
 
@@ -338,13 +351,9 @@ class UI {
             const li = document.createElement("li");
             li.textContent = name;
             li.addEventListener("click", () => {
-                // Update both the search input and set the selected answer
                 this.searchInput.value = name;
-                // Store the selected answer for submission
                 this.searchInput.dataset.selected = name;
-                // Clear the list after selection
                 this.searchList.innerHTML = "";
-                // Visual feedback
                 this.searchInput.style.background = "#2a4a2a";
                 setTimeout(() => {
                     this.searchInput.style.background = "";
@@ -387,7 +396,10 @@ class Game {
         this.themeManager = new ThemeManager();
         this.timer = new Timer(document.getElementById("timerDisplay"));
         this.timer.onTimeout = () => this.handleTimeout();
-        this.soundManager = new SoundManager(document.getElementById("volumeSlider"));
+        this.soundManager = new SoundManager(
+            document.getElementById("volumeSlider"),
+            document.getElementById("volumePercent")
+        );
 
         this.sessionStats = {
             streak: 0,
@@ -413,19 +425,16 @@ class Game {
     }
 
     bindUI() {
-        // Play sound
         document.getElementById("playBtn").addEventListener("click", () => {
             if (this.currentSound) {
                 this.soundManager.play(this.soundFolder + this.currentSound);
             }
         });
 
-        // Background change
         this.ui.backgroundSelect.addEventListener("change", e => {
             this.ui.setBackground(e.target.value, this.themeManager);
         });
 
-        // Search toggle
         const searchToggle = document.getElementById("searchToggle");
         searchToggle.addEventListener("click", () => {
             this.settings.searchMode = !this.settings.searchMode;
@@ -441,18 +450,13 @@ class Game {
             }
         });
 
-        // Search input - show all options when focused
         this.ui.searchInput.addEventListener("focus", () => {
-            // Show all available options when clicking into search
             const allOptions = this.soundFiles.map(f => formatName(f));
             this.ui.populateSearchList(allOptions);
         });
 
-        // Search input - filter as user types
         this.ui.searchInput.addEventListener("input", () => {
             const query = this.ui.searchInput.value.toLowerCase();
-            
-            // Clear selected answer when user starts typing again
             delete this.ui.searchInput.dataset.selected;
             
             const filtered = this.soundFiles
@@ -462,15 +466,12 @@ class Game {
             this.ui.populateSearchList(filtered);
         });
 
-        // Option count
         this.ui.optionCount.addEventListener("input", e => {
             const val = parseInt(e.target.value, 10);
             if (isNaN(val)) return;
 
-            // Enforce minimum of 5 options
             let clamped = Math.max(5, val);
 
-            // Optional: don't allow more than total sounds once loaded
             if (this.soundFiles.length > 0) {
                 clamped = Math.min(clamped, this.soundFiles.length);
             }
@@ -478,44 +479,31 @@ class Game {
             this.settings.optionCount = clamped;
             e.target.value = clamped;
 
-            // When the number of options changes, refresh the question
             if (this.soundFiles.length > 0) {
                 this.newRound();
             }
         });
 
-        // Timer mode (On/Off) radio buttons
         this.ui.timerModeRadios.forEach(radio => {
             radio.addEventListener("change", e => {
-                console.log("Timer mode changed to:", e.target.value);
                 const timerDisplay = document.getElementById("timerDisplay");
                 
                 if (e.target.value === "off") {
                     this.settings.timerEnabled = false;
                     this.ui.timerDifficultyDiv.style.display = "none";
                     timerDisplay.style.display = "none";
-                    console.log("Timer disabled");
                 } else if (e.target.value === "on") {
                     this.settings.timerEnabled = true;
                     this.ui.timerDifficultyDiv.style.display = "block";
                     timerDisplay.style.display = "block";
                     
-                    console.log("Timer enabled, showing difficulty options");
-                    console.log("Difficulty div element:", this.ui.timerDifficultyDiv);
-                    console.log("Difficulty div display:", this.ui.timerDifficultyDiv.style.display);
-                    
-                    // Get selected difficulty
                     for (const diffRadio of this.ui.timerDifficultyRadios) {
                         if (diffRadio.checked) {
                             this.settings.timerDifficulty = diffRadio.value;
-                            console.log("Selected difficulty:", diffRadio.value);
                             break;
                         }
                     }
                     
-                    console.log("Timer settings:", this.settings);
-                    
-                    // Start new round with timer
                     if (this.soundFiles.length > 0) {
                         this.newRound();
                     }
@@ -523,14 +511,11 @@ class Game {
             });
         });
 
-        // Timer difficulty change
         this.ui.timerDifficultyRadios.forEach(radio => {
             radio.addEventListener("change", e => {
-                console.log("Difficulty changed to:", e.target.value);
                 if (this.settings.timerEnabled) {
                     this.settings.timerDifficulty = e.target.value;
                     
-                    // Start new round with new difficulty
                     if (this.soundFiles.length > 0) {
                         this.newRound();
                     }
@@ -538,36 +523,43 @@ class Game {
             });
         });
 
-        // Menu toggle
         document.getElementById("menuBtn").addEventListener("click", () => {
             document.getElementById("menuPanel").classList.toggle("open");
         });
 
-        // Leaderboard toggle
         document.getElementById("leaderboardBtn").addEventListener("click", () => {
             document.getElementById("leaderboardPanel").classList.toggle("open");
         });
 
-        // Volume slider controls background video too
         const bgVideo = document.getElementById("bgVideo");
         const volumeSlider = document.getElementById("volumeSlider");
 
         volumeSlider.addEventListener("input", () => {
             bgVideo.volume = volumeSlider.value / 100;
+            this.ui.updateVolumeDisplay(volumeSlider.value);
         });
     }
 
     async loadSounds() {
-        const response = await fetch(this.soundFolder + "list.json");
-        this.soundFiles = await response.json();
-        this.ui.optionCount.max = this.soundFiles.length;
-        this.newRound();
+        try {
+            const response = await fetch(this.soundFolder + "list.json");
+            if (!response.ok) {
+                throw new Error("Failed to load sound list");
+            }
+            this.soundFiles = await response.json();
+            if (!Array.isArray(this.soundFiles) || this.soundFiles.length === 0) {
+                throw new Error("Invalid sound list");
+            }
+            this.ui.optionCount.max = this.soundFiles.length;
+            this.newRound();
+        } catch (error) {
+            alert("Error loading sounds. Please refresh the page.");
+        }
     }
 
     newRound() {
         this.stats.roundsCompleted++;
 
-        // Clear search input for new round
         if (this.ui.searchInput) {
             this.ui.searchInput.value = "";
             delete this.ui.searchInput.dataset.selected;
@@ -576,7 +568,6 @@ class Game {
 
         if (this.settings.timerEnabled) {
             const duration = this.getTimerDuration();
-            console.log("Starting timer with difficulty:", this.settings.timerDifficulty, "duration:", duration);
             this.timer.start(duration);
         }
 
@@ -588,7 +579,6 @@ class Game {
     }
 
     getTimerDuration() {
-        console.log("Getting timer duration for difficulty:", this.settings.timerDifficulty);
         switch (this.settings.timerDifficulty) {
             case "easy":
                 return 45;
@@ -597,7 +587,6 @@ class Game {
             case "hard":
                 return 15;
             default:
-                console.warn("Unknown difficulty, defaulting to 0:", this.settings.timerDifficulty);
                 return 0;
         }
     }
@@ -605,7 +594,6 @@ class Game {
     buildOptions(count) {
         this.ui.clearOptions();
 
-        // Add placeholder option so nothing is selected by default
         const placeholder = document.createElement("option");
         placeholder.value = "";
         placeholder.textContent = "Choose option";
@@ -677,7 +665,6 @@ class Game {
     }
 
     handleTimeout() {
-        // Timer-mode-only loss that does not affect overall stats
         if (!this.settings.timerEnabled) return;
         this.showScoreModal("Time's Up!");
     }
@@ -685,14 +672,12 @@ class Game {
     handleGuess() {
         let guess;
         
-        // Get guess from search mode or dropdown
         if (this.settings.searchMode) {
             guess = this.ui.searchInput.dataset.selected;
         } else {
             guess = this.ui.optionContainer.value;
         }
 
-        // Require the player to choose an option
         if (!guess) {
             const result = document.getElementById("result");
             if (result) {
@@ -720,7 +705,6 @@ class Game {
             this.stats.wins++;
             this.stats.bestStreak++;
             
-            // Track mode-specific wins
             if (this.settings.timerEnabled) {
                 if (this.settings.timerDifficulty === "easy") {
                     this.stats.easyModeWins++;
@@ -756,7 +740,6 @@ class Game {
 
 let game = null;
 
-// Leaderboard export
 window.gameStats = {
     get wins() { return game?.stats.wins ?? 0; },
     get fastestTime() { return game?.stats.fastestTime ?? Infinity; },
@@ -771,9 +754,6 @@ window.gameStats = {
     get hardModeWins() { return game?.stats.hardModeWins ?? 0; }
 };
 
-// ===============================
-// Initialize Game
-// ===============================
 document.addEventListener("DOMContentLoaded", () => {
     game = new Game();
     game.loadSounds();
@@ -782,15 +762,12 @@ document.addEventListener("DOMContentLoaded", () => {
         game.handleGuess();
     });
 
-    // Force Classic background on startup
     game.ui.setBackground("backgrounds/Classic.mp4", game.themeManager);
 
-    // Set initial background volume
     const bgVideo = document.getElementById("bgVideo");
     const volumeSlider = document.getElementById("volumeSlider");
     bgVideo.volume = volumeSlider.value / 100;
 
-    // Allow background audio after first click
     document.addEventListener("click", () => {
         bgVideo.muted = false;
         bgVideo.volume = volumeSlider.value / 100;
